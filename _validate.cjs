@@ -42,6 +42,7 @@ const documentStub = {
   querySelectorAll: () => [],
   createElement: () => makeEl(),
   addEventListener: () => {},
+  documentElement: { lang: '' },
 };
 const sandbox = {
   document: documentStub,
@@ -62,7 +63,7 @@ const test = `
   try {
     const cats = CAT_ORDER.slice();
     const groups = {};
-    PRESETS.forEach(p=>{ const c=p[4]||'其他'; (groups[c]=groups[c]||[]).push(p); });
+    PRESETS.forEach(p=>{ const c=p[5]||'其他'; (groups[c]=groups[c]||[]).push(p); });
     log('PRESETS_total=' + PRESETS.length);
     log('CAT_ORDER=' + cats.length + ' [' + cats.join(',') + ']');
     const missing = cats.filter(c=>!groups[c]||!groups[c].length);
@@ -72,7 +73,7 @@ const test = `
     const names = PRESETS.map(p=>p[0]);
     const dup = names.filter((n,i)=>names.indexOf(n)!==i);
     log('duplicate_names=' + (dup.length? dup.join(','):'none'));
-    const wrong = PRESETS.filter(p=>/Hardlinks/.test(p[1]));
+    const wrong = PRESETS.filter(p=>/Hardlinks/i.test(p[2]));
     log('wrongcase_Hardlinks=' + wrong.length);
     const hits = (cond)=> SAMPLE.filter(f=>matchFile(f,'+'+cond)).length;
     log('hit_size>=100MB=' + hits('size: >= 100 MB') + ' (exp 3)');

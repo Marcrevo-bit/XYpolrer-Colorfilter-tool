@@ -172,6 +172,10 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
 .libitem .lt{font-size:11.5px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:5px}
 .libitem .ld{font-family:var(--mono);font-size:10px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .libitem .sw2{width:11px;height:11px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.12)}
+/* 配方库 / 模板库：可滚动，内容不再被截断 */
+.lib.scroll{max-height:520px;overflow:auto;padding-right:3px}
+.libtoolbar{display:flex;gap:6px;margin-bottom:9px}
+.libtoolbar .btn{font-size:11px;padding:3px 11px}
 
 .mylist{max-height:260px;overflow:auto}
 .myitem{
@@ -248,12 +252,13 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
 <body>
 
 <header>
-  <h1>XYplorer 颜色过滤器配方生成器</h1>
-  <span class="sub">v1.0 · 可视化拼规则 · 实时预览 · 导出即用 · 开发者 Marcrevo</span>
+  <h1 data-i18n="appTitle">XYplorer 颜色过滤器配方生成器</h1>
+  <span class="sub" data-i18n="appSub">v1.0 · 可视化拼规则 · 实时预览 · 导出即用 · 开发者 Marcrevo</span>
   <span class="spacer"></span>
   <span class="envbadge" id="envBadge">检测中…</span>
-  <button class="hbtn" id="btnHelp">语法速查</button>
-  <button class="hbtn" id="btnReset">清空我的配方</button>
+  <button class="hbtn" id="btnLang">EN</button>
+  <button class="hbtn" id="btnHelp" data-i18n="btnHelp">语法速查</button>
+  <button class="hbtn" id="btnReset" data-i18n="btnReset">清空我的配方</button>
 </header>
 
 <div class="wrap">
@@ -552,7 +557,7 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
     </div>
 
     <div class="card">
-      <h2>② 着色与样式</h2>
+      <h2><span data-i18n="c2style">② 着色与样式</span></h2>
       <div class="body">
         <div class="row">
           <div class="fld">
@@ -596,7 +601,7 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
             <input type="text" id="iTitle" placeholder="如 今天修改过的公文"></div>
         </div>
         <div class="row">
-          <div class="fld"><label>注释（可选，// 后内容）</label>
+          <div class="fld"><label data-i18n="lblComment">注释（可选，// 后内容）</label>
             <input type="text" id="iComment" placeholder="如 Office 文档">
             <div class="chips" style="margin-top:6px">
               <span class="chip tiny" data-sw2="m">m 合并下条文字色</span>
@@ -788,15 +793,15 @@ PDF|*.pdf
         <div class="mylist" id="myList"></div>
         <div class="divider"></div>
         <div class="btnrow">
-          <button class="btn sm pri" id="btnImportSel">导入所选 → 现有规则并写入 ▶</button>
-          <button class="btn sm" id="btnGenIni">生成 ini 片段</button>
-          <button class="btn sm" id="btnCopyAll">复制全部</button>
-          <button class="btn sm" id="btnExport">导出 .txt</button>
-          <button class="btn sm" id="btnImport">导入文本</button>
+          <button class="btn sm pri" id="btnImportSel" data-i18n="btnImportSel">导入所选 → 现有规则并写入 ▶</button>
+          <button class="btn sm" id="btnGenIni" data-i18n="btnGenIni">生成 ini 片段</button>
+          <button class="btn sm" id="btnCopyAll" data-i18n="btnCopyAll">复制全部</button>
+          <button class="btn sm" id="btnExport" data-i18n="btnExportTxt">导出 .txt</button>
+          <button class="btn sm" id="btnImport" data-i18n="btnImportTxt">导入文本</button>
         </div>
         <div class="row" style="margin-top:9px">
           <div class="fld">
-            <label>导入区（粘贴规则文本，每行一条；含 <span class="kbd">||</span> 的多档会整体保留）</label>
+            <label data-i18n="lblImport">导入区（粘贴规则文本，每行一条；含 <span class="kbd">||</span> 的多档会整体保留）</label>
             <textarea id="iImport" placeholder="+*.docx>003066,CADCFF&#10;+ageM: d>FFFFFF,74C622"></textarea>
           </div>
         </div>
@@ -811,14 +816,25 @@ PDF|*.pdf
     </div>
 
     <div class="card">
-      <h2>内置配方库 <span class="tag">分类 · 点击载入</span></h2>
+      <h2><span data-i18n="libTitle">内置配方库</span> <span class="tag" data-i18n="libTag">分类 · 点击载入</span></h2>
       <div class="body">
-        <div class="lib" id="presetLib"></div>
+        <div class="libtoolbar">
+          <button class="btn sm" id="btnExpandAll" data-i18n="expandAll">展开全部</button>
+          <button class="btn sm" id="btnCollapseAll" data-i18n="collapseAll">折叠全部</button>
+        </div>
+        <div class="lib scroll" id="presetLib"></div>
       </div>
     </div>
 
     <div class="card">
-      <h2>导出结果（ini 片段）</h2>
+      <h2><span data-i18n="tierTplTitle">多档渐变模板</span> <span class="tag" data-i18n="tierTplTag">点击载入</span></h2>
+      <div class="body">
+        <div class="lib scroll" id="tierTemplates"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span data-i18n="exportIni">导出结果（ini 片段）</span></h2>
       <div class="body">
         <div class="inout" id="outIni">点击「生成 ini 片段」…</div>
         <div class="btnrow" style="margin-top:9px">
@@ -886,104 +902,129 @@ const PALETTES = {
 };
 let CUR_PAL = '经典';
 let PRESET_COLORS = PALETTES[CUR_PAL];
-/* 配方分类顺序（用于折叠分组展示）。每条约 [名称, 条件, 文字色, 背景色, 分类] */
+/* 配方分类顺序（用于折叠分组展示）。每条约 [中文名, 英文短名, 条件, 文字色, 背景色, 分类] */
 const CAT_ORDER = ['时间热度','文件类型','属性状态','命名场景','文件夹','高级玩法'];
+const CAT_EN = {'时间热度':'Time & Recency','文件类型':'File Types','属性状态':'Attributes & Size','命名场景':'Naming Patterns','文件夹':'Folders','高级玩法':'Advanced'};
 const PRESETS = [
   /* —— 时间热度（修改 / 新建 / 访问 / 异常）—— */
-  ['今天修改','ageM: d','FFFFFF','74C622','时间热度'],
-  ['本周修改','ageM: w','FFFFFF','B97026','时间热度'],
-  ['近30分钟','ageM f: <= 30 n','FFFFFF','5C9E1B','时间热度'],
-  ['今天新建','ageC: d','FFFFFF','379BFF','时间热度'],
-  ['本周新建','ageC: w','FFFFFF','71B8FF','时间热度'],
-  ['昨天修改','ageM: <= 1 d','FFFFFF','EF6C00','时间热度'],
-  ['近7天修改','ageM: <= 7 d','E65100','FFE0B2','时间热度'],
-  ['近30天修改','ageM: <= 30 d','FFFFFF','F4A93D','时间热度'],
-  ['超过30天未动','ageM: > 30 d','607D8B','ECEFF1','时间热度'],
-  ['超过1年未动','ageM: > 365 d','455A64','CFD8DC','时间热度'],
-  ['今天访问','ageA: d','E3F2FD','1E88E5','时间热度'],
-  ['本周访问','ageA: w','E3F2FD','42A5F5','时间热度'],
-  ['修改于今年','dateM: y 2026','1565C0','E8EAF6','时间热度'],
-  ['今年新建文件','dateC: y 2026','1565C0','E3F2FD','时间热度'],
-  ['时间异常(未来)','ageM: < 0 d','FFFFFF','FF00FF','时间热度'],
+  ['今天修改','Modified today','ageM: d','FFFFFF','74C622','时间热度'],
+  ['本周修改','Modified this week','ageM: w','FFFFFF','B97026','时间热度'],
+  ['近30分钟','Last 30 min','ageM f: <= 30 n','FFFFFF','5C9E1B','时间热度'],
+  ['今天新建','Created today','ageC: d','FFFFFF','379BFF','时间热度'],
+  ['本周新建','Created this week','ageC: w','FFFFFF','71B8FF','时间热度'],
+  ['昨天修改','Modified yesterday','ageM: <= 1 d','FFFFFF','EF6C00','时间热度'],
+  ['近7天修改','Last 7 days','ageM: <= 7 d','E65100','FFE0B2','时间热度'],
+  ['近30天修改','Last 30 days','ageM: <= 30 d','FFFFFF','F4A93D','时间热度'],
+  ['超过30天未动','Untouched 30+ days','ageM: > 30 d','607D8B','ECEFF1','时间热度'],
+  ['超过1年未动','Untouched 1+ year','ageM: > 365 d','455A64','CFD8DC','时间热度'],
+  ['今天访问','Accessed today','ageA: d','E3F2FD','1E88E5','时间热度'],
+  ['本周访问','Accessed this week','ageA: w','E3F2FD','42A5F5','时间热度'],
+  ['久未访问(>1年)','Not accessed 1+ year','ageA: > 365 d','607D8B','ECEFF1','时间热度'],
+  ['修改于今年','Modified in 2026','dateM: y 2026','1565C0','E8EAF6','时间热度'],
+  ['今年新建文件','Created in 2026','dateC: y 2026','1565C0','E3F2FD','时间热度'],
+  ['时间异常(未来)','Future-dated (anomaly)','ageM: < 0 d','FFFFFF','FF00FF','时间热度'],
+  ['修改热力分层','Modified-heat gradient','ageM: d>FFFFFF,FF6F00||ageM: <= 7 d>FFFFFF,EF6C00||ageM: <= 30 d>FFFFFF,F4A93D||ageM: > 30 d>607D8B,ECEFF1','','','时间热度'],
 
   /* —— 文件类型（按扩展名）—— */
-  ['Office 公文','*.doc;*.docx;*.xls;*.xlsx;*.ppt;*.pptx','003066','CADCFF','文件类型'],
-  ['PDF 文件','*.pdf','7F0000','FFD9D9','文件类型'],
-  ['图片','*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.webp','36530F','E6F786','文件类型'],
-  ['压缩包','*.zip;*.rar;*.7z','CC6600','FFE8CC','文件类型'],
-  ['音视频','*.mp3;*.wav;*.mp4;*.avi;*.mov','4A2C82','E7DBFA','文件类型'],
-  ['程序/脚本','*.exe;*.bat;*.cmd;*.msi','804000','FFFFAA','文件类型'],
-  ['文档(非Office)','*.txt;*.md;*.rtf;*.log','37474F','ECEFF1','文件类型'],
-  ['纯文本/配置','*.txt;*.log;*.ini;*.csv','00695C','E0F2F1','文件类型'],
-  ['图片RAW','*.cr2;*.nef;*.arw;*.dng','4E342E','EFEBE9','文件类型'],
-  ['视频','*.mp4;*.avi;*.mov;*.mkv;*.flv','311B92','EDE7F6','文件类型'],
-  ['网页源码','*.html;*.htm;*.css;*.js','006064','E0F7FA','文件类型'],
-  ['代码文件','*.c;*.cpp;*.h;*.py;*.java;*.cs;*.go;*.rs','1B5E20','DCEDC8','文件类型'],
-  ['数据/结构化','*.json;*.xml;*.yaml;*.yml;*.toml;*.sql','006064','B2EBF2','文件类型'],
-  ['矢量/设计稿','*.svg;*.psd;*.ai;*.xd','4A148C','E1BEE7','文件类型'],
-  ['字体文件','*.ttf;*.otf;*.woff;*.woff2','3E2723','D7CCC8','文件类型'],
-  ['电子书','*.epub;*.mobi','BF360C','FBE9E7','文件类型'],
-  ['数据库文件','*.db;*.sqlite;*.mdb','263238','B0BEC5','文件类型'],
+  ['Office 公文','Office docs','*.doc;*.docx;*.xls;*.xlsx;*.ppt;*.pptx','003066','CADCFF','文件类型'],
+  ['PDF 文件','PDF files','*.pdf','7F0000','FFD9D9','文件类型'],
+  ['图片','Images','*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.webp','36530F','E6F786','文件类型'],
+  ['压缩包','Archives','*.zip;*.rar;*.7z','CC6600','FFE8CC','文件类型'],
+  ['音视频','Audio & video','*.mp3;*.wav;*.mp4;*.avi;*.mov','4A2C82','E7DBFA','文件类型'],
+  ['程序/脚本','Programs & scripts','*.exe;*.bat;*.cmd;*.msi','804000','FFFFAA','文件类型'],
+  ['文档(非Office)','Docs (non-Office)','*.txt;*.md;*.rtf;*.log','37474F','ECEFF1','文件类型'],
+  ['纯文本/配置','Text & config','*.txt;*.log;*.ini;*.csv','00695C','E0F2F1','文件类型'],
+  ['图片RAW','RAW photos','*.cr2;*.nef;*.arw;*.dng','4E342E','EFEBE9','文件类型'],
+  ['视频','Videos','*.mp4;*.avi;*.mov;*.mkv;*.flv','311B92','EDE7F6','文件类型'],
+  ['网页源码','Web sources','*.html;*.htm;*.css;*.js','006064','E0F7FA','文件类型'],
+  ['代码文件','Source code','*.c;*.cpp;*.h;*.py;*.java;*.cs;*.go;*.rs','1B5E20','DCEDC8','文件类型'],
+  ['数据/结构化','Data & structured','*.json;*.xml;*.yaml;*.yml;*.toml;*.sql','006064','B2EBF2','文件类型'],
+  ['矢量/设计稿','Vector & design','*.svg;*.psd;*.ai;*.xd','4A148C','E1BEE7','文件类型'],
+  ['字体文件','Fonts','*.ttf;*.otf;*.woff;*.woff2','3E2723','D7CCC8','文件类型'],
+  ['电子书','E-books','*.epub;*.mobi','BF360C','FBE9E7','文件类型'],
+  ['数据库文件','Database files','*.db;*.sqlite;*.mdb','263238','B0BEC5','文件类型'],
 
   /* —— 属性状态（大小 / 属性 / 长度）—— */
-  ['空文件','size: 0','4199E0','E0E2ED','属性状态'],
-  ['大文件 ≥10MB','size: >= 10 MB','FFFFFF','E65100','属性状态'],
-  ['大文件 ≥100MB','size: >= 100 MB','FFFFFF','C0392B','属性状态'],
-  ['超大文件≥1GB','size: >= 1 GB','FFFFFF','7B1FA2','属性状态'],
-  ['小文件（<10KB）','size: < 10 KB','FFFFFF','90A4AE','属性状态'],
-  ['只读（已定稿）','attr f:readonly','47A905','FFFF80','属性状态'],
-  ['系统文件','attr:system','FF0000','FFFF80','属性状态'],
-  ['隐藏文件','attr:hidden','5E738C','E3E6EB','属性状态'],
-  ['归档属性（可离线）','attr:archive','5D4037','D7CCC8','属性状态'],
-  ['路径超长','len: >= 260','FFFFFF','D94235','属性状态'],
-  ['超长文件名','lenT: >= 64','E65100','FFF3E0','属性状态'],
-  ['软链接/目录联接','attr:junction','00695C','B2DFDB','属性状态'],
+  ['空文件','Empty files','size: 0','4199E0','E0E2ED','属性状态'],
+  ['大文件 ≥10MB','Large ≥10MB','size: >= 10 MB','FFFFFF','E65100','属性状态'],
+  ['大文件 ≥100MB','Large ≥100MB','size: >= 100 MB','FFFFFF','C0392B','属性状态'],
+  ['超大文件≥1GB','Huge ≥1GB','size: >= 1 GB','FFFFFF','7B1FA2','属性状态'],
+  ['小文件（<10KB）','Tiny <10KB','size: < 10 KB','FFFFFF','90A4AE','属性状态'],
+  ['只读（已定稿）','Read-only (final)','attr f:readonly','47A905','FFFF80','属性状态'],
+  ['系统文件','System files','attr:system','FF0000','FFFF80','属性状态'],
+  ['隐藏文件','Hidden files','attr:hidden','5E738C','E3E6EB','属性状态'],
+  ['归档属性','Archive attr','attr:archive','5D4037','D7CCC8','属性状态'],
+  ['加密属性(EFS)','Encrypted (EFS)','attr:encrypted','263238','CFD8DC','属性状态'],
+  ['压缩属性(NTFS)','Compressed (NTFS)','attr:compressed','00695C','B2DFDB','属性状态'],
+  ['符号链接','Symbolic links','attr:link','4A2C82','E7DBFA','属性状态'],
+  ['目录联接(Junction)','Junctions','attr:junction','00695C','B2DFDB','属性状态'],
+  ['路径超长','Long path','len: >= 260','FFFFFF','D94235','属性状态'],
+  ['超长文件名','Long filename','lenT: >= 64','E65100','FFF3E0','属性状态'],
+  ['无扩展名文件','No extension','!name:*.*','757575','E0E0E0','属性状态'],
 
   /* —— 命名场景（按名称关键词）—— */
-  ['公文热词','*汇报*;*总结*;*台账*;*请示*','8B0000','FFF0C0','命名场景'],
-  ['临时文件','*.tmp;*.temp;*.bak;~*','6B7280','F1F3F5','命名场景'],
-  ['备份/副本','*备份*;*副本*;*bak*;~*','5D4037','EFEBE9','命名场景'],
-  ['名称含"最终版/定稿"','*最终版*;*定稿*;*终稿*','B71C1C','FFCDD2','命名场景'],
-  ['扫描件','*扫描*','4E342E','D7CCC8','命名场景'],
-  ['临时下载残留','*.part;*.crdownload;*.tmp','455A64','CFD8DC','命名场景'],
-  ['名称含"草稿"','*草稿*','827717','F0EAD6','命名场景'],
-  ['名称含"测试"','*测试*;*test*;*Test*','AD1457','FCE4EC','命名场景'],
-  ['名称含"旧版/废弃"','*旧*;*废弃*;*old*','757575','E0E0E0','命名场景'],
+  ['公文热词','Official-doc keywords','*汇报*;*总结*;*台账*;*请示*','8B0000','FFF0C0','命名场景'],
+  ['临时文件','Temp files','*.tmp;*.temp;*.bak;~*','6B7280','F1F3F5','命名场景'],
+  ['备份/副本','Backups & copies','*备份*;*副本*;*bak*;~*','5D4037','EFEBE9','命名场景'],
+  ['名称含"最终版/定稿"','"Final/draft" in name','*最终版*;*定稿*;*终稿*','B71C1C','FFCDD2','命名场景'],
+  ['扫描件','Scans','*扫描*','4E342E','D7CCC8','命名场景'],
+  ['临时下载残留','Partial downloads','*.part;*.crdownload;*.tmp','455A64','CFD8DC','命名场景'],
+  ['名称含"草稿"','"Draft" in name','*草稿*','827717','F0EAD6','命名场景'],
+  ['名称含"测试"','"Test" in name','*测试*;*test*;*Test*','AD1457','FCE4EC','命名场景'],
+  ['名称含"旧版/废弃"','"Old/deprecated" in name','*旧*;*废弃*;*old*','757575','E0E0E0','命名场景'],
+  ['名称含版本号','Versioned names','*V1*;*V2*;*版本*','0F6E7B','D3F0F4','命名场景'],
 
-  /* —— 文件夹（目录属性 / 空目录检测）—— */
-  ['空文件夹','B:prop:#empty:2|f','A3A4A7','DCE4E9','文件夹'],
-  ['伪空文件夹(仅desktop.ini)','B:prop:#contains.desktop.ini:1 AND B:prop:#itemcount:1|f','A3A4A7','DCE4E9','文件夹'],
-  ['空或伪空文件夹','B:prop:#contains.desktop.ini:1 AND B:prop:#itemcount:1;B:prop:#empty:2','8A6D3B','FCF8E3','文件夹'],
-  ['无子文件夹','L:prop:#nosubs:2','5382D9','','文件夹'],
-  ['排除网络盘的空夹','B:prop:#empty:2|f //|filter:C:*|filternot:Z:*','A3A4A7','DCE4E9','文件夹'],
-  ['排除回收站路径','B:prop:#empty:2|f //|filter:C:*;D:*;E:*','A3A4A7','DCE4E9','文件夹'],
+  /* —— 文件夹（目录属性 / 空目录检测；B:=树+列表, T:=仅树, L:=仅列表）—— */
+  ['空文件夹','Empty folders','B:prop:#empty:2|f','A3A4A7','DCE4E9','文件夹'],
+  ['伪空文件夹(仅desktop.ini)','Pseudo-empty (desktop.ini only)','B:prop:#contains.desktop.ini:1 AND B:prop:#itemcount:1|f','A3A4A7','DCE4E9','文件夹'],
+  ['空或伪空文件夹','Empty or pseudo-empty','B:prop:#contains.desktop.ini:1 AND B:prop:#itemcount:1;B:prop:#empty:2','8A6D3B','FCF8E3','文件夹'],
+  ['无子文件夹','No subfolders','L:prop:#nosubs:2','5382D9','','文件夹'],
+  ['大文件夹(含子项≥1GB)','Big folder ≥1GB (incl. sub)','B:prop:#foldersize: >= 1 GB','37474F','D7CCC8','文件夹'],
+  ['文件多的文件夹(≥100项)','Crowded folder ≥100 items','B:prop:#itemcount: >= 100','5D4037','EFEBE9','文件夹'],
+  ['含图片的文件夹','Folder containing images','B:prop:#contains.*.jpg:1','4A148C','E1BEE7','文件夹'],
+  ['排除网络盘的空夹','Empty (skip network drives)','B:prop:#empty:2|f //|filter:C:*|filternot:Z:*','A3A4A7','DCE4E9','文件夹'],
+  ['排除回收站路径','Empty (skip Recycle Bin)','B:prop:#empty:2|f //|filter:C:*;D:*;E:*','A3A4A7','DCE4E9','文件夹'],
 
-  /* —— 高级玩法（来源 XYplorer 官方论坛 / Release Notes，已验证语法）—— */
-  ['多硬链接文件','prop:#HardLinks: > 1','4A2C82','E7DBFA','高级玩法'],
-  ['16:9 图片','prop:#AspectRatio: 16:9','5A4F36','F7E686','高级玩法'],
-  ['16:10 图片','prop:#AspectRatio: 16:10','5A4F36','F7E686','高级玩法'],
-  ['宽度≥1500px 图','prop:dimensions: 1500 x *','0B6B3A','D8F3E2','高级玩法'],
-  ['竖图(高>宽)','prop:dimensions: * x 1500','0B6B3A','D8F3E2','高级玩法'],
-  ['4K 及以上图片','prop:dimensions: 3840 x *','0B6B3A','D8F3E2','高级玩法'],
-  ['带拍摄信息的照片','prop:CameraModel: *','36530F','E6F786','高级玩法'],
-  ['相机 Canon','prop:CameraModel: *Canon*','36530F','E6F786','高级玩法'],
-  ['相机 Nikon','prop:CameraModel: *Nikon*','36530F','E6F786','高级玩法'],
-  ['含 GPS 位置','prop:#GPS: *','0F6E7B','D3F0F4','高级玩法'],
-  ['视频时长≥5分钟','prop:#Duration: >= 00:05:00','4A2C82','E7DBFA','高级玩法'],
-  ['标签:待归档','tags:"待归档"','8B0000','FFF0C0','高级玩法'],
-  ['标签:已完成','tags:"已完成"','8B0000','FFF0C0','高级玩法'],
-  ['备注含2026','cmt: 2026','0F6E7B','D3F0F4','高级玩法'],
-  ['备注非空','cmt: *','0F6E7B','D3F0F4','高级玩法'],
-  ['硬链接≥3','prop:#HardLinks: >= 3','4A2C82','E7DBFA','高级玩法'],
-  ['m合并:只取文字色','ageM: d //m|今天修改(合并)','FF5722','','高级玩法'],
-  ['n开关:仅着色名称列','*.bak //n|只着色名称列','6B7280','F1F3F5','高级玩法'],
+  /* —— 高级玩法（来源 XYplorer 官方文档 / 论坛，已验证语法）—— */
+  ['多硬链接文件','Multi-hardlinked','prop:#HardLinks: > 1','4A2C82','E7DBFA','高级玩法'],
+  ['16:9 图片','16:9 photos','prop:#AspectRatio: 16:9','5A4F36','F7E686','高级玩法'],
+  ['16:10 图片','16:10 photos','prop:#AspectRatio: 16:10','5A4F36','F7E686','高级玩法'],
+  ['9:16 竖图','9:16 portraits','prop:#AspectRatio: 9:16','5A4F36','F7E686','高级玩法'],
+  ['宽图(≥1500px)','Wide ≥1500px','prop:dimensions: 1500 x *','0B6B3A','D8F3E2','高级玩法'],
+  ['大尺寸图(≥1600px)','Large dimension ≥1600px','prop:dimensions: 1600 x *','0B6B3A','D8F3E2','高级玩法'],
+  ['竖图(高>宽)','Portrait (h>w)','prop:dimensions: * x 1500','0B6B3A','D8F3E2','高级玩法'],
+  ['4K 及以上图片','4K+ photos','prop:dimensions: 3840 x *','0B6B3A','D8F3E2','高级玩法'],
+  ['带拍摄信息的照片','Photos with EXIF','prop:CameraModel: *','36530F','E6F786','高级玩法'],
+  ['相机 Canon','Camera: Canon','prop:CameraModel: *Canon*','36530F','E6F786','高级玩法'],
+  ['相机 Nikon','Camera: Nikon','prop:CameraModel: *Nikon*','36530F','E6F786','高级玩法'],
+  ['相机型号(任意)','Any camera model','prop:CameraModel:?*','36530F','E6F786','高级玩法'],
+  ['视频文件(按类型)','Videos (by type)','prop:type:Video','311B92','EDE7F6','高级玩法'],
+  ['含 GPS 位置','With GPS','prop:#GPS: *','0F6E7B','D3F0F4','高级玩法'],
+  ['视频时长≥5分钟','Video ≥5 min','prop:#Duration: >= 00:05:00','4A2C82','E7DBFA','高级玩法'],
+  ['标签:待归档','Tag: To-file','tags:"待归档"','8B0000','FFF0C0','高级玩法'],
+  ['标签:已完成','Tag: Done','tags:"已完成"','8B0000','FFF0C0','高级玩法'],
+  ['有标签的文件','Any tagged file','tags: *','8B0000','FFF0C0','高级玩法'],
+  ['标注(内容色)','Label (content color)','prop:#Label:approved','0F6E7B','D3F0F4','高级玩法'],
+  ['备注含2026','Comment has 2026','cmt: 2026','0F6E7B','D3F0F4','高级玩法'],
+  ['备注含 todo','Comment has todo','cmt: *todo*','0F6E7B','D3F0F4','高级玩法'],
+  ['备注非空','Comment not empty','cmt: *','0F6E7B','D3F0F4','高级玩法'],
+  ['硬链接≥3','HardLinks ≥3','prop:#HardLinks: >= 3','4A2C82','E7DBFA','高级玩法'],
+  ['树中今日文件夹','Today folders (tree only)','T:ageM: d','5382D9','','高级玩法'],
+  ['树中按盘着色','Color by drive (tree only)','T:name:"C:\\"','5382D9','','高级玩法'],
+  ['仅列表着色隐藏文件','Hidden in list only','L:attr:hidden','5E738C','E3E6EB','高级玩法'],
+  ['快速定位大PDF(预过滤)','Fast large-PDF (prefilter)','*.pdf //|filter:size: >= 10 MB','7F0000','FFD9D9','高级玩法'],
+  ['m合并:只取文字色','m-switch: text color only','ageM: d //m|今天修改(合并)','FF5722','','高级玩法'],
+  ['n开关:仅着色名称列(实验性)','n-switch: name col only (experimental)','*.bak //n|只着色名称列','6B7280','F1F3F5','高级玩法'],
 ];
-/* 多档渐变模板（整体载入，非单条） */
+/* 多档渐变模板（整体载入，非单条）；每条约 [中文名, 英文短名, 规则] */
 const TIER_TEMPLATES = [
-  ['时间热力(今/周/月)', 'ageM: d>FFFFFF,FF6F00||ageM: w>FFFFFF,EF6C00||ageM: m>CFD8DC,37474F'],
-  ['体积分层(GB/MB/KB)', 'size: >= 1 GB>000000,8A939F||size: >= 100 MB>003080,8EA4C4||size: >= 10 MB>004080,A9BAD3||size: >= 1 MB>0053A6,BCCCDE||size: >= 1 KB>0E80DC,D1DAE9'],
-  ['近期热度(5分/1时/24时)', 'ageM f: <= 5 n>FFFF00,4F831B||ageM f: <= 1 h>FFFF00,63A521||ageM f: <= 24 h>FFFFFF,70B926'],
-  ['文件夹创建时间(3时/今/本周)', 'ageC d: <= 3 h>FFFF00,0073E6||ageC d: d>FFFF80,379BFF||ageC d: w>FFFFFF,71B8FF'],
+  ['时间热力(今/周/月)','Time heat (d/w/m)','ageM: d>FFFFFF,FF6F00||ageM: w>FFFFFF,EF6C00||ageM: m>CFD8DC,37474F'],
+  ['体积分层(GB/MB/KB)','Size tiers (GB/MB/KB)','size: >= 1 GB>000000,8A939F||size: >= 100 MB>003080,8EA4C4||size: >= 10 MB>004080,A9BAD3||size: >= 1 MB>0053A6,BCCCDE||size: >= 1 KB>0E80DC,D1DAE9'],
+  ['近期热度(5分/1时/24时)','Recent heat (5m/1h/24h)','ageM f: <= 5 n>FFFF00,4F831B||ageM f: <= 1 h>FFFF00,63A521||ageM f: <= 24 h>FFFFFF,70B926'],
+  ['文件夹创建时间(3时/今/本周)','Folder age (3h/d/w)','ageC d: <= 3 h>FFFF00,0073E6||ageC d: d>FFFF80,379BFF||ageC d: w>FFFFFF,71B8FF'],
+  ['年龄分层(今/周/月/年)','Age tiers (d/w/m/y)','ageM: d>FFFFFF,FF6F00||ageM: w>FFFFFF,EF6C00||ageM: m>CFD8DC,37474F||ageM: y>90A4AE,ECEFF1'],
+  ['文件夹大小分层','Folder-size tiers','B:prop:#foldersize: >= 1 GB>000000,8A939F||B:prop:#foldersize: >= 100 MB>003080,8EA4C4||B:prop:#foldersize: >= 10 MB>004080,A9BAD3'],
+  ['名称长度分层','Name-length tiers','lenT: >= 40>7B1FA2,F3E5F5||lenT: >= 20>1565C0,E3F2FD||lenT: >= 10>37474F,ECEFF1'],
 ];
 /* 预览样本：通用演示数据（不含任何个人信息，覆盖名称/类型/大小/属性/时长/长度/文件夹等） */
 const SAMPLE = [
@@ -1015,6 +1056,83 @@ let ST = {
   mSwitch:false,         // //m 合并下条文字色
   nSwitch:false,         // //n 仅着色名称列
 };
+
+/* ---------- 双语（中 / EN） ---------- */
+let LANG = localStorage.getItem('xycf_lang') || 'zh';
+const STR = {
+  zh:{
+    appTitle:'XYplorer 颜色过滤器配方生成器',
+    appSub:'v1.0 · 可视化拼规则 · 实时预览 · 导出即用 · 开发者 Marcrevo',
+    btnHelp:'语法速查', btnReset:'清空我的配方',
+    libTitle:'内置配方库', libTag:'分类 · 点击载入',
+    tierTplTitle:'多档渐变模板', tierTplTag:'点击载入',
+    expandAll:'展开全部', collapseAll:'折叠全部',
+    c1match:'① 匹配条件', c2style:'② 着色与样式', c3tier:'③ 多档渐变',
+    c4combo:'④ 条件组合器', c5batch:'⑤ 批量生成', c5batchTag:'按扩展名建整套配色',
+    livePv:'实时预览', livePvTag:'模拟 XYplorer 列表', genRule:'生成的规则',
+    syntaxHelp:'语法速查（官方帮助要点）',
+    connXY:'① 连接 XYplorer', existRule:'② 现有规则', myRecipe:'我的配方', rollback:'回滚备份',
+    exportIni:'导出结果（ini 片段）',
+    btnApply:'▶ 应用并预览', btnAutoOn:'自动预览：开', btnAutoOff:'自动预览：关',
+    btnCopyRule:'复制规则', btnSaveMy:'存入「我的配方」',
+    btnRefresh:'刷新状态', btnRead:'读取现有规则', btnWrite:'写入 XYplorer', btnBak:'立即备份', btnOpenBak:'打开备份目录',
+    btnReplace:'仅替换 [ColorFilter] 段', btnMoveAll:'全部转入「我的配方」',
+    btnImportSel:'导入所选 → 现有规则并写入 ▶', btnGenIni:'生成 ini 片段', btnCopyAll:'复制全部', btnExportTxt:'导出 .txt', btnImportTxt:'导入文本',
+    btnAddTier:'+ 把当前条件加入档位', btnClearTier:'清空档位',
+    btnComboAdd:'+ 添加条件', btnComboClear:'清空', btnComboApply:'合成并预览',
+    btnBatchGen:'生成并存入「我的配方」', btnBatchPrev:'预览配色', btnClr:'清空',
+    lblType:'过滤器类型（选择器）', lblScope:'作用域（文件 / 文件夹）', lblTarget:'生效位置（控制选择器）',
+    lblFg:'文字色（留空 = 默认，明暗模式自适应更稳）', lblBg:'背景色（留空 = 不着色背景）',
+    lblPalette:'常用配色（点击套用 文字+背景）', lblSw:'样式开关（| 后字母，可多选）',
+    lblTitle:'标题（可选，仅即时过滤器显示为菜单名）', lblComment:'注释（可选，// 后内容）',
+    lblCombo:'合成结果', lblScheme:'配色方案', lblImport:'导入区（粘贴规则文本，每行一条；含 || 的多档会整体保留）',
+    lblPattern:'匹配模式（* ? 为通配符，分号分隔多个；加引号 = 精确匹配）',
+    envDetect:'检测中…', connUntried:'未连接', connOk:'已连接本地', connNotFound:'未找到配置',
+    envBrowser:'浏览器模式', envConnected:'已连接本地', connErr:'异常',
+    foot:'XYplorer 颜色过滤器配方生成器 · 开发者 ', foot2:' · 基于 XYplorer 官方 Color Filter 语法',
+  },
+  en:{
+    appTitle:'XYplorer Color Filter Recipe Generator',
+    appSub:'v1.1 · Visual rule builder · Live preview · Export-ready · by Marcrevo',
+    btnHelp:'Syntax', btnReset:'Clear My Recipes',
+    libTitle:'Built-in Recipe Library', libTag:'by category · click to load',
+    tierTplTitle:'Tier-gradient Templates', tierTplTag:'click to load',
+    expandAll:'Expand all', collapseAll:'Collapse all',
+    c1match:'① Match Condition', c2style:'② Color & Style', c3tier:'③ Multi-tier Gradient',
+    c4combo:'④ Condition Combiner', c5batch:'⑤ Batch Generator', c5batchTag:'Whole palette by extension',
+    livePv:'Live Preview', livePvTag:'simulated XYplorer list', genRule:'Generated Rule',
+    syntaxHelp:'Syntax Reference',
+    connXY:'① Connect XYplorer', existRule:'② Existing Rules', myRecipe:'My Recipes', rollback:'Rollback Backups',
+    exportIni:'Export (ini snippet)',
+    btnApply:'▶ Apply & Preview', btnAutoOn:'Auto preview: ON', btnAutoOff:'Auto preview: OFF',
+    btnCopyRule:'Copy Rule', btnSaveMy:'Save to My Recipes',
+    btnRefresh:'Refresh', btnRead:'Read Rules', btnWrite:'Write to XYplorer', btnBak:'Backup Now', btnOpenBak:'Open Backups',
+    btnReplace:'Replace [ColorFilter] only', btnMoveAll:'Move all to My Recipes',
+    btnImportSel:'Import selected → write ▶', btnGenIni:'Generate ini', btnCopyAll:'Copy all', btnExportTxt:'Export .txt', btnImportTxt:'Import text',
+    btnAddTier:'+ Add current to tier', btnClearTier:'Clear tiers',
+    btnComboAdd:'+ Add condition', btnComboClear:'Clear', btnComboApply:'Combine & preview',
+    btnBatchGen:'Generate & save', btnBatchPrev:'Preview', btnClr:'Clear',
+    lblType:'Filter type (selector)', lblScope:'Scope (file / folder)', lblTarget:'Target (controls selector)',
+    lblFg:'Text color (blank = default, adapts to light/dark)', lblBg:'Background color (blank = no fill)',
+    lblPalette:'Common palettes (click to apply text+bg)', lblSw:'Style switches (letters after |, multi)',
+    lblTitle:'Title (optional, shown as menu name for ad-hoc filter)', lblComment:'Comment (optional, after //)',
+    lblCombo:'Combined result', lblScheme:'Color scheme', lblImport:'Import area (paste rules, one per line; || multi-tier kept intact)',
+    lblPattern:'Pattern (* ? wildcards, ; separates, quotes = exact)',
+    envDetect:'Detecting…', connUntried:'Not connected', connOk:'Connected (local)', connNotFound:'Config not found',
+    envBrowser:'Browser mode', envConnected:'Connected (local)', connErr:'Error',
+    foot:'XYplorer Color Filter Recipe Generator · by ', foot2:' · based on XYplorer official Color Filter syntax',
+  }
+};
+function applyLang(){
+  document.documentElement.lang = (LANG==='en' ? 'en' : 'zh-CN');
+  const btnLang=$('#btnLang'); if(btnLang) btnLang.textContent = (LANG==='en' ? '中' : 'EN');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');
+    if(STR[LANG][k]!=null) el.textContent = STR[LANG][k];
+  });
+  renderPresetLib(); renderTierTemplates();
+  const a=$('#btnAuto'); if(a) a.textContent = STR[LANG][ST.auto ? 'btnAutoOn' : 'btnAutoOff'];
+}
 const $ = s=>document.querySelector(s);
 const $$ = s=>[...document.querySelectorAll(s)];
 
@@ -1446,49 +1564,49 @@ function updateMySel(){
   const all=$('#mySelAll'); if(all) all.checked=(sel>0&&sel===ST.my.length);
 }
 function presetRule(p){
-  const cond=p[1],fg=p[2]||'',bg=p[3]||'';
+  const cond=p[2],fg=p[3]||'',bg=p[4]||'';
   return '+'+cond+(fg||bg?'>'+fg+(bg?','+bg:''):'');
 }
+function presetName(p){ return LANG==='en' ? (p[1]||p[0]) : p[0]; }
+function catName(c){ return LANG==='en' ? (CAT_EN[c]||c) : c; }
 function renderPresetLib(){
   const box=$('#presetLib');box.innerHTML='';
-  // 按分类聚合
   const groups={};
-  PRESETS.forEach(p=>{const c=p[4]||'其他';(groups[c]=groups[c]||[]).push(p);});
+  PRESETS.forEach(p=>{const c=p[5]||'其他';(groups[c]=groups[c]||[]).push(p);});
   CAT_ORDER.forEach(cat=>{
     const items=groups[cat];if(!items||!items.length) return;
-    const det=document.createElement('details');det.className='cat';det.open=true;
-    det.innerHTML='<summary><span>'+esc(cat)+'</span>'+
+    const det=document.createElement('details');det.className='cat';det.open=true;det.dataset.cat=cat;
+    det.innerHTML='<summary><span>'+esc(catName(cat))+'</span>'+
       '<span class="cnt">'+items.length+'</span>'+
       '<span class="arw">▾</span></summary>';
     const body=document.createElement('div');body.className='body';
     const lib=document.createElement('div');lib.className='lib';
     items.forEach(p=>{
-      const [n,cond,fg,bg]=p;
+      const cond=p[2],fg=p[3],bg=p[4],n=presetName(p);
       const d=document.createElement('div');d.className='libitem';
       d.innerHTML='<div class="lt"><span class="sw2" style="background:'+(bg?'#'+bg:'#fff')+';border-color:#'+(fg||'ccc')+'"></span>'+esc(n)+'</div>'+
         '<div class="ld">'+esc(cond)+'</div>';
       d.title=cond;
-      d.onclick=()=>{loadDef(presetRule(p));toast('已载入：'+n);};
+      d.onclick=()=>{loadDef(presetRule(p));toast((LANG==='en'?'Loaded: ':'已载入：')+n);};
       lib.appendChild(d);
     });
     body.appendChild(lib);det.appendChild(body);box.appendChild(det);
   });
-  // 多档渐变模板
-  const det=document.createElement('details');det.className='cat';det.open=true;
-  det.innerHTML='<summary><span>多档渐变模板</span>'+
-    '<span class="cnt">'+TIER_TEMPLATES.length+'</span>'+
-    '<span class="arw">▾</span></summary>';
-  const body=document.createElement('div');body.className='body';
+}
+function renderTierTemplates(){
+  const box=$('#tierTemplates'); if(!box) return; box.innerHTML='';
   const lib=document.createElement('div');lib.className='lib';
-  TIER_TEMPLATES.forEach(([n,def])=>{
+  TIER_TEMPLATES.forEach(p=>{
+    const zh=p[0],en=p[1],def=p[2],n=LANG==='en'?en:zh;
     const d=document.createElement('div');d.className='libitem';
-    d.innerHTML='<div class="lt">'+esc(n)+'</div><div class="ld">'+esc(def)+'</div>';
+    d.innerHTML='<div class="lt">'+esc(n)+'</div><div class="ld wrap">'+esc(def)+'</div>';
     d.title=def;
-    d.onclick=()=>{loadDef('+'+def);toast('已载入模板：'+n);};
+    d.onclick=()=>{loadDef('+'+def);toast((LANG==='en'?'Template loaded: ':'已载入模板：')+n);};
     lib.appendChild(d);
   });
-  body.appendChild(lib);det.appendChild(body);box.appendChild(det);
+  box.appendChild(lib);
 }
+function setCats(open){ document.querySelectorAll('#presetLib .cat').forEach(d=>d.open=open); }
 function loadDef(def){
   // 解析一条规则回填（尽力而为）
   let d=def.replace(/^\+/,'');
@@ -1660,6 +1778,13 @@ function load(){ try{const s=localStorage.getItem('xy_cf_my');if(s)ST.my=JSON.pa
 
 /* ---------- 事件 ---------- */
 function bind(){
+  $('#btnLang').onclick=()=>{
+    LANG = (LANG==='en' ? 'zh' : 'en');
+    localStorage.setItem('xycf_lang', LANG);
+    applyLang();
+  };
+  $('#btnExpandAll').onclick=()=>setCats(true);
+  $('#btnCollapseAll').onclick=()=>setCats(false);
   $('#selType').onchange=()=>{syncTypePanels();renderOut();};
   ['#iPattern','#iAgeNum','#iAgeOp','#iAgeKind','#iAgeUnit','#iDateKind','#iDateMode','#iDateOp','#iDate1','#iDate2',
    '#iDateUnit','#iDateSubVal','#iSizeOp','#iSizeNum','#iSizeUnit','#iSize2','#iLenOp','#iLenNum',
@@ -1851,11 +1976,11 @@ async function refreshStatus(){
     $('#stBak').textContent=s.backups+' 个';
     $('#stRun').innerHTML=s.xy_running? '<span class="red">正在运行</span>' : '未运行';
     $('#runWarn').style.display=s.xy_running?'':'none';
-    $('#connTag').textContent=s.exists?'已连接':'未找到配置';
-    if(!s.exists) $('#connTag').textContent='未找到配置';
+    $('#connTag').textContent=s.exists?STR[LANG].connOk:STR[LANG].connNotFound;
+    if(!s.exists) $('#connTag').textContent=STR[LANG].connNotFound;
   }catch(e){
     $('#stPath').textContent='读取失败：'+e;
-    $('#connTag').textContent='异常';
+    $('#connTag').textContent=STR[LANG].connErr;
   }
   await loadBackups();
 }
@@ -2079,7 +2204,7 @@ function batchGen(store){
 /* ---------- 启动 ---------- */
 (function init(){
   renderExtChips();renderAttrChips();renderPresetLib();
-  bind();load();renderMy();syncTypePanels();
+  bind();applyLang();load();renderMy();syncTypePanels();
   renderPaletteChips();renderCombo();
   setColor('#cFg','003066');setColor('#cBg','CADCFF');
   renderTiers();renderOut();
