@@ -1,0 +1,134 @@
+// 离线校验：抽取 index.html 中的 <script> 在 DOM stub 下执行，
+// 验证 (1) 无语法/引用错误 (2) PRESETS 分类完整且不重复 (3) 预览匹配逻辑正确。
+const fs = require('fs');
+const vm = require('vm');
+const path = require('path');
+
+const html = fs.readFileSync(path.join(__dirname, 'ui', 'index.html'), 'utf8');
+const m = html.match(/<script>([\s\S]*?)<\/script>/);
+if (!m) { console.log('NO_SCRIPT_FOUND'); process.exit(1); }
+let body = m[1];
+
+// ---- 通用 DOM stub ----
+function makeEl() {
+  const store = { _children: [] };
+  const handler = {
+    get(t, prop) {
+      if (prop === 'classList') return { add(){}, remove(){}, toggle(){}, contains(){return false;} };
+      if (prop === 'style') return makeEl();
+      if (prop === 'dataset') return new Proxy({}, { get(){ return ''; }, set(){ return true; } });
+      if (prop === 'children') return store._children;
+      if (prop === 'selectedOptions') return [{ text: '' }];
+      if (prop === 'textContent' || prop === 'innerHTML' || prop === 'value' || prop === 'title') return store[prop] || '';
+      if (prop === Symbol.toPrimitive) return () => '';
+      if (prop === 'forEach') return () => {};
+      if (prop === 'appendChild') return (c) => { store._children.push(c); return c; };
+      if (prop === 'querySelectorAll') return () => [];
+      if (prop === 'querySelector') return () => makeEl();
+      if (prop === 'addEventListener') return () => {};
+      if (prop === 'setAttribute' || prop === 'getAttribute') return () => '';
+      if (prop === 'checked' || prop === 'disabled') return false;
+      if (prop === 'length') return 0;
+      return (...a) => makeEl();
+    },
+    set(t, prop, val) { store[prop] = val; return true; },
+    apply() { return makeEl(); }
+  };
+  return new Proxy(function(){}, handler);
+}
+const documentStub = {
+  getElementById: () => makeEl(),
+  querySelector: () => makeEl(),
+  querySelectorAll: () => [],
+  createElement: () => makeEl(),
+  addEventListener: () => {},
+};
+const sandbox = {
+  document: documentStub,
+  window: { addEventListener(){}, localStorage: { getItem: () => null, setItem(){} } },
+  localStorage: { getItem: () => null, setItem(){} },
+  TA: { call: () => Promise.resolve({}) },
+  confirm: () => true,
+  alert: () => {},
+  setTimeout: () => 0,
+  console,
+};
+sandbox.globalThis = sandbox;
+
+const test = `
+;(function(){
+  const out = [];
+  const log = (...a)=>out.push(a.join(' '));
+  try {
+    const cats = CAT_ORDER.slice();
+    const groups = {};
+    PRESETS.forEach(p=>{ const c=p[4]||'其他'; (groups[c]=groups[c]||[]).push(p); });
+    log('PRESETS_total=' + PRESETS.length);
+    log('CAT_ORDER=' + cats.length + ' [' + cats.join(',') + ']');
+    const missing = cats.filter(c=>!groups[c]||!groups[c].length);
+    log('empty_categories=' + (missing.length? missing.join(','):'none'));
+    const unknown = Object.keys(groups).filter(c=>!cats.includes(c));
+    log('unknown_categories=' + (unknown.length? unknown.join(','):'none'));
+    const names = PRESETS.map(p=>p[0]);
+    const dup = names.filter((n,i)=>names.indexOf(n)!==i);
+    log('duplicate_names=' + (dup.length? dup.join(','):'none'));
+    const wrong = PRESETS.filter(p=>/Hardlinks/.test(p[1]));
+    log('wrongcase_Hardlinks=' + wrong.length);
+    const hits = (cond)=> SAMPLE.filter(f=>matchFile(f,'+'+cond)).length;
+    log('hit_size>=100MB=' + hits('size: >= 100 MB') + ' (exp 3)');
+    log('hit_office=' + hits('*.doc;*.docx;*.xls;*.xlsx;*.ppt;*.pptx') + ' (exp 4)');
+    log('hit_hidden=' + hits('attr:hidden') + ' (exp 1)');
+    log('hit_readonly=' + hits('attr f:readonly') + ' (exp 0)');
+    log('hit_path>=260=' + hits('len: >= 260') + ' (exp 0)');
+    log('hit_recent30min=' + hits('ageM f: <= 30 n') + ' (exp >=1)');
+    log('hit_temp(~)=' + hits('*.tmp;*.temp;*.bak;~*') + ' (exp 1)');
+    log('hit_backup=' + hits('*备份*;*副本*;*bak*;~*') + ' (exp >=2)');
+    log('hit_longname=' + hits('lenT: >= 64') + ' (exp >=1)');
+    log('hit_empty=' + hits('size: 0') + ' (exp 0)');
+    const ln = SAMPLE.find(f=>f.n.length>=60);
+    log('DBG_longlen=' + (ln?ln.n.length:'NA') + ' match=' + (ln? (!!matchFile(ln,'+lenT: >= 64')):'NA'));
+    log('DBG_numMatch=' + numMatch(67,'>= 64',x=>parseFloat(x)));
+    log('DBG_matchCond=' + (ln? !!matchCond(ln,'lenT: >= 64'):'NA'));
+    log('DBG_matchOne=' + (ln? !!matchOne(ln,'lenT: >= 64'):'NA'));
+    function cls(s){
+      s=s.trim().replace(/^[TLB]:/i,'').replace(/\|[bswfrp-]+$/,'');
+      let mm=s.match(/^([a-zA-Z]+)\s+([df]{1,2})\s*:\s*(.*)$/);
+      if(mm) return 'A:'+mm[1]+'|'+mm[2]+'|'+JSON.stringify(mm[3]);
+      mm=s.match(/^([a-zA-Z]+)\s*:\s*(.*)$/);
+      if(mm) return 'B:'+mm[1]+'|'+JSON.stringify(mm[2]);
+      return 'NAME:'+s;
+    }
+    log('DBG_cls=' + cls('lenT: >= 64'));
+    log('DBG_lnlen=' + (ln?ln.n.length:'NA'));
+    log('DBG_matchAtom_direct=' + (ln? !!matchAtom(ln,'lenT: >= 64'):'NA'));
+    log('DBG_ln_d=' + (ln? ln.d : 'NA') + ' ln_a=' + (ln? ln.a : 'NA'));
+    if(ln){ const L=ln.n.length; log('DBG_inline=' + numMatch(L,'>= 64',x=>parseFloat(x))); }
+    if(ln){
+      const _o=matchAtom;
+      matchAtom=function(f,a){
+        let aa=a.trim().replace(/^[TLB]:/i,'').replace(/\|[bswfrp-]+$/,'');
+        let mm=aa.match(/^([a-zA-Z]+)\s+([df]{1,2})\s*:\s*(.*)$/);
+        let sel,rest;
+        if(mm){sel=mm[1].toLowerCase();rest=mm[3].trim();}
+        else{mm=aa.match(/^([a-zA-Z]+)\s*:\s*(.*)$/);sel=mm?mm[1].toLowerCase():'?';rest=mm?mm[2].trim():aa;}
+        const r=_o(f,a);
+        log('DBG_wrap sel='+sel+' rest='+JSON.stringify(rest)+' Ln='+(f.n?f.n.length:'?')+' ret='+!!r);
+        return r;
+      };
+      log('DBG_wrapcall=' + !!matchOne(ln,'lenT: >= 64'));
+    }
+    renderPresetLib();
+    log('renderPresetLib_OK');
+    log('ALL_CHECKS_DONE');
+  } catch(e){ log('TEST_ERROR: ' + (e && e.stack || e)); }
+  console.log(out.join('\\n'));
+})();
+`;
+
+try {
+  vm.createContext(sandbox);
+  vm.runInContext(body + '\n' + test, sandbox, { filename: 'index_script.js' });
+} catch (e) {
+  console.log('SCRIPT_RUN_ERROR:\n' + (e && e.stack || e));
+  process.exit(2);
+}

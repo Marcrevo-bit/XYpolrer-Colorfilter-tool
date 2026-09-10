@@ -1,0 +1,24 @@
+# Rust / Cargo 构建产物
+/target/
+**/target/
+*.d
+
+# 误建空文件（Windows nul 设备重定向产物）
+nul
+
+# 操作系统 / 编辑器垃圾
+Thumbs.db
+.DS_Store
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 日志
+*.log
+
+# 依赖（如有）
+node_modules/

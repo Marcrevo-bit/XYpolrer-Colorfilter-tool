@@ -1,0 +1,2093 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XYplorer 颜色过滤器配方生成器</title>
+<style>
+:root{
+  --bg:#F5F6F8; --panel:#FFFFFF; --panel2:#FAFBFC;
+  --line:#E3E6EB; --line2:#EDEFF2;
+  --tx:#1F2430; --tx2:#5B6472; --tx3:#8A93A2;
+  --pri:#2F6BEF; --pri-bg:#EAF1FE; --pri-line:#C3D7FD;
+  --ok:#169154; --warn:#B97026; --danger:#C0392B;
+  --radius:10px;
+  --mono:"Cascadia Mono","Consolas","SFMono-Regular","Menlo",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--tx);font-size:13px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+/* ---------- 顶栏 ---------- */
+header{
+  background:linear-gradient(100deg,#2F6BEF 0%,#3E7BF0 45%,#4C8DF2 100%);
+  color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;
+  box-shadow:0 1px 3px rgba(20,40,80,.18);position:sticky;top:0;z-index:50;
+}
+header h1{font-size:16px;font-weight:650;letter-spacing:.3px}
+header .sub{font-size:11.5px;opacity:.82;margin-left:2px}
+header .spacer{flex:1}
+.hbtn{
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+  color:#fff;padding:5px 13px;border-radius:7px;cursor:pointer;font-size:12px;
+  font-family:inherit;transition:.15s;
+}
+.hbtn:hover{background:rgba(255,255,255,.28)}
+
+/* ---------- 布局 ---------- */
+.wrap{display:grid;grid-template-columns:minmax(280px,360px) minmax(320px,1fr) minmax(280px,360px);gap:14px;padding:14px;align-items:start}
+.col-build,.col-pv,.col-out{min-width:0;min-height:0}
+@media(max-width:1500px){.wrap{grid-template-columns:minmax(260px,340px) minmax(0,1fr) minmax(260px,340px)}}
+@media(max-width:1280px){.wrap{grid-template-columns:minmax(260px,340px) minmax(0,1fr)}.col-out{grid-column:1/-1}}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}.col-pv{position:static;top:auto}}
+@media(max-width:520px){.lib{grid-template-columns:1fr}}
+/* 中间预览列常驻可见，长页面滚动时不被带过 */
+.col-pv{position:sticky;top:72px;align-self:start}
+/* 列内分区标题（用于把多张卡片归到一组） */
+.colsub{font-size:11px;font-weight:640;color:var(--tx3);letter-spacing:.4px;margin:2px 2px 8px;display:flex;align-items:center;gap:7px}
+.colsub::before{content:"";width:3px;height:13px;background:var(--pri);border-radius:2px;display:inline-block}
+.colsub .ct{margin-left:auto;font-weight:500;color:var(--tx3);background:var(--panel2);border:1px solid var(--line2);border-radius:20px;padding:1px 9px}
+
+/* 选择条（我的配方 全选/计数） */
+.selbar{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel2);margin-bottom:8px}
+.selbar label{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--tx2);cursor:pointer;user-select:none}
+.selbar .sp{flex:1}
+.selbar .cnt{font-size:11px;color:var(--tx3)}
+.selbar input[type=checkbox]{width:auto;flex:none;cursor:pointer}
+/* 列表项选择态 */
+.myitem.sel{border-color:var(--pri);background:var(--pri-bg)}
+.myitem .pick{width:auto;flex:none;cursor:pointer;accent-color:var(--pri)}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  margin-bottom:12px;overflow:hidden;
+}
+.card>h2{
+  font-size:12.5px;font-weight:640;padding:9px 14px;background:var(--panel2);
+  border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:8px;color:var(--tx);
+}
+.card>h2 .tag{
+  font-size:10px;font-weight:500;background:var(--pri-bg);color:var(--pri);
+  border:1px solid var(--pri-line);padding:1px 6px;border-radius:4px;letter-spacing:.2px;
+}
+.card .body{padding:13px 14px}
+
+/* ---------- 表单 ---------- */
+.row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start}
+.row:last-child{margin-bottom:0}
+.fld{flex:1;min-width:0}
+.fld>label{display:block;font-size:11px;color:var(--tx2);margin-bottom:4px;font-weight:560}
+select,input[type=text],input[type=number],textarea{
+  width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:7px;
+  font-size:12.5px;font-family:inherit;background:#fff;color:var(--tx);outline:none;transition:.15s;
+}
+select:focus,input:focus,textarea:focus{border-color:var(--pri);box-shadow:0 0 0 2.5px var(--pri-bg)}
+input[type=text].mono{font-family:var(--mono);font-size:12px}
+textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5px;line-height:1.65}
+.w90{width:92px;flex:none}.w70{width:74px;flex:none}.w110{width:110px;flex:none}
+.hint{font-size:10.5px;color:var(--tx3);margin-top:4px;line-height:1.5}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  padding:3.5px 9px;border:1px solid var(--line);border-radius:20px;background:#fff;
+  cursor:pointer;font-size:11.5px;color:var(--tx2);user-select:none;transition:.13s;
+}
+.chip:hover{border-color:var(--pri);color:var(--pri)}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.chip.on.g{background:var(--ok);border-color:var(--ok)}
+.chip.tiny{padding:2px 7px;font-size:11px}
+
+/* 颜色 */
+.colorbox{display:flex;gap:10px;align-items:flex-start}
+.csamp{width:38px;height:38px;border-radius:7px;border:1px solid var(--line);flex:none;cursor:pointer;position:relative;overflow:hidden}
+.csamp input{position:absolute;inset:-6px;width:150%;height:150%;border:0;padding:0;cursor:pointer;opacity:0}
+.cprev{
+  flex:1;border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:12px;
+  display:flex;align-items:center;justify-content:center;min-height:38px;text-align:center;
+}
+.swatches{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.sw{width:19px;height:19px;border-radius:4px;cursor:pointer;border:1px solid rgba(0,0,0,.12);transition:.12s}
+.sw:hover{transform:scale(1.18);border-color:#333}
+
+/* 按钮 */
+.btn{
+  padding:6px 13px;border:1px solid var(--line);background:#fff;border-radius:7px;
+  cursor:pointer;font-size:12px;font-family:inherit;color:var(--tx);transition:.15s;
+}
+.btn:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-bg)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.pri:hover{background:#2560DF;color:#fff}
+.btn.gh{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.gh:hover{background:#128047;color:#fff}
+.btn.sm{padding:3.5px 9px;font-size:11.5px}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btnrow{display:flex;gap:7px;flex-wrap:wrap}
+
+/* ---------- 档位 ---------- */
+.tier{border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:9px;background:var(--panel2);position:relative}
+.tier .th{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.tier .th b{font-size:11.5px;color:var(--tx2);font-weight:600}
+.tier .th .sp{flex:1}
+.tier .th .del{color:var(--tx3);cursor:pointer;font-size:15px;line-height:1;padding:0 3px}
+.tier .th .del:hover{color:var(--danger)}
+
+/* ---------- 预览 ---------- */
+.pv{background:#fff;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+#pvRows{max-height:340px;overflow:auto}
+.pv .pvh{
+  background:var(--panel2);border-bottom:1px solid var(--line2);display:flex;
+  font-size:10.5px;color:var(--tx3);font-weight:600;padding:5px 10px;
+}
+.pv .pvr{display:flex;align-items:center;border-bottom:1px solid var(--line2);font-size:12px}
+.pv .pvr:last-child{border-bottom:0}
+.pv .pvr:hover{background:#F8FAFF}
+.pv .c1{flex:1;padding:5px 10px;display:flex;align-items:center;gap:7px;min-width:0}
+.pv .c2{width:86px;padding:5px 8px;color:var(--tx3);font-size:11px;text-align:right;flex:none}
+.pv .c3{width:104px;padding:5px 8px;color:var(--tx3);font-size:11px;flex:none}
+.pv .ico{width:15px;text-align:center;flex:none;font-size:12px}
+.pv .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 5px;border-radius:4px}
+.pvbar{display:flex;gap:5px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+
+/* ---------- 输出 ---------- */
+.out{
+  font-family:var(--mono);font-size:12px;background:#1E2430;color:#E8EDF5;
+  padding:11px 12px;border-radius:9px;word-break:break-all;line-height:1.75;
+  max-height:190px;overflow:auto;white-space:pre-wrap;
+}
+.out .hl{color:#7FD1A8}.out .dim{color:#7B8798}.out .op{color:#F0A05A}
+.inout{
+  font-family:var(--mono);font-size:11.5px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:10px;white-space:pre;overflow:auto;max-height:230px;color:var(--tx);
+}
+
+/* ---------- 配方库 ---------- */
+.lib{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.libitem{
+  border:1px solid var(--line);border-radius:8px;padding:7px 9px;cursor:pointer;
+  transition:.14s;background:#fff;
+}
+.libitem:hover{border-color:var(--pri);background:var(--pri-bg)}
+.libitem .lt{font-size:11.5px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.libitem .ld{font-family:var(--mono);font-size:10px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.libitem .sw2{width:11px;height:11px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.12)}
+
+.mylist{max-height:260px;overflow:auto}
+.myitem{
+  display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--line);
+  border-radius:7px;margin-bottom:5px;background:#fff;
+}
+.myitem .sw2{width:13px;height:13px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.12)}
+.myitem .mn{flex:1;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.myitem .act{display:flex;gap:4px;flex:none}
+.empty{text-align:center;color:var(--tx3);font-size:11.5px;padding:16px 0}
+.divider{height:1px;background:var(--line2);margin:11px 0}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);
+  background:#1E2430;color:#fff;padding:9px 20px;border-radius:8px;font-size:12.5px;
+  opacity:0;transition:.25s;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.22);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- Tauri / 连接 ---------- */
+.envbadge{
+  font-size:11px;padding:3px 10px;border-radius:20px;
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+}
+.envbadge.on{background:#16A34A;border-color:#16A34A}
+.envbadge.off{background:rgba(255,255,255,.12)}
+.warnbox{
+  background:#FFF7E6;border:1px solid #FFD591;border-radius:7px;padding:8px 10px;
+  font-size:11.5px;color:#8A5300;line-height:1.65;margin-bottom:9px;
+}
+.warnbox code{font-family:var(--mono);background:#FFF1D6;border-radius:3px;padding:0 3px}
+.red{color:var(--danger);font-weight:600}
+.kv{display:flex;gap:8px;font-size:11.5px;padding:3px 0;border-bottom:1px dashed var(--line2)}
+.kv:last-of-type{border-bottom:0}
+.kv span{color:var(--tx3);width:74px;flex:none}
+.kv b{font-weight:600;word-break:break-all;flex:1;color:var(--tx)}
+.myitem.editable{cursor:pointer}
+.myitem.editable:hover{border-color:var(--pri);background:var(--pri-bg)}
+.ruletext{font-family:var(--mono);font-size:10.5px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.comborow{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.comborow .idx{font-size:10px;color:var(--tx3);width:16px;flex:none;text-align:center}
+.comborow select{width:auto;flex:none;padding:5px 6px;font-size:11.5px}
+.comborow input[type=text]{flex:1}
+.comborow .mini-btn{
+  border:1px solid var(--line);background:#fff;border-radius:5px;cursor:pointer;
+  font-size:11px;padding:4px 7px;flex:none;color:var(--tx2);
+}
+.comborow .mini-btn:hover{border-color:var(--danger);color:var(--danger)}
+.comborow .mini-btn.not.on{background:var(--warn);border-color:var(--warn);color:#fff}
+.batchsw{display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;margin-bottom:5px;background:#fff}
+.batchsw .sw2{width:16px;height:16px;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.12)}
+.batchsw .bn{font-size:12px;flex:1}
+.batchsw .bd{font-family:var(--mono);font-size:10.5px;color:var(--tx3)}
+.sechead{font-size:11px;color:var(--tx3);font-weight:600;margin:10px 0 6px;padding-top:6px;border-top:1px solid var(--line2)}
+.sechead:first-child{margin-top:0;padding-top:0;border-top:0}
+
+/* ---------- 配方库分类折叠 ---------- */
+.cat{border:1px solid var(--line);border-radius:9px;margin-bottom:9px;background:#fff;overflow:hidden}
+.cat>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--panel2);border-bottom:1px solid var(--line2);font-size:12px;font-weight:640;color:var(--tx);user-select:none}
+.cat>summary::-webkit-details-marker{display:none}
+.cat>summary .arw{margin-left:auto;transition:transform .18s ease;color:var(--tx3);font-size:12px;line-height:1}
+.cat:not([open])>summary{border-bottom:0}
+.cat:not([open])>summary .arw{transform:rotate(-90deg)}
+.cat>summary .cnt{font-size:10.5px;font-weight:500;color:var(--tx3);background:#fff;border:1px solid var(--line);border-radius:20px;padding:1px 8px}
+.cat>.body{padding:10px 11px}
+.cat .lib{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mini{font-size:10.5px;color:var(--tx3)}
+.kbd{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:10.5px}
+.exdetails{font-size:11px;color:var(--tx2);line-height:1.75}
+.exdetails code{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:1px 4px;font-size:11px;color:var(--pri)}
+.appfoot{margin:14px;padding:12px 16px;text-align:center;font-size:11.5px;color:var(--tx3);background:var(--panel);border:1px solid var(--line);border-radius:9px}
+.appfoot b{color:var(--tx2)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>XYplorer 颜色过滤器配方生成器</h1>
+  <span class="sub">v1.0 · 可视化拼规则 · 实时预览 · 导出即用 · 开发者 Marcrevo</span>
+  <span class="spacer"></span>
+  <span class="envbadge" id="envBadge">检测中…</span>
+  <button class="hbtn" id="btnHelp">语法速查</button>
+  <button class="hbtn" id="btnReset">清空我的配方</button>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= 左：构建器 ================= -->
+  <div class="col-build">
+
+    <div class="card">
+      <h2>① 匹配条件 <span class="tag" id="tagType">名称</span></h2>
+      <div class="body">
+        <div class="row">
+          <div class="fld">
+            <label>过滤器类型（选择器）</label>
+            <select id="selType">
+              <option value="name">名称 name:（文件名，可省略）</option>
+              <option value="dir">文件夹名 dir:（仅文件夹）</option>
+              <option value="age">时长 age:（多久之前，支持目录树）</option>
+              <option value="date">日期 date:（绝对日期 / 子范围）</option>
+              <option value="size">大小 size:</option>
+              <option value="attr">属性 attr:（任一具备）</option>
+              <option value="attrlist">属性组合 attrlist:（全部具备）</option>
+              <option value="len">路径长度 len:</option>
+              <option value="lenT">文件名长度 lenT:</option>
+              <option value="prop">Shell 属性 prop:（较慢，建议加预过滤）</option>
+              <option value="tag">标签 tags: / cmt:</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 名称 / 文件夹名 -->
+        <div id="pName">
+          <div class="row">
+            <div class="fld">
+              <label>匹配模式（* ? 为通配符，分号分隔多个；加引号 = 精确匹配）</label>
+              <input type="text" class="mono" id="iPattern" value="*.docx" placeholder="*.docx;*.doc">
+            </div>
+          </div>
+          <div class="row">
+            <div class="fld">
+              <label>快捷扩展名（点击追加）</label>
+              <div class="chips" id="extChips"></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="fld">
+              <label style="display:flex;align-items:center;gap:6px">
+                <input type="checkbox" id="cExact" style="width:auto"> 精确匹配（自动加引号）
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 时长 -->
+        <div id="pAge" style="display:none">
+          <div class="row">
+            <div class="fld w110">
+              <label>时间种类</label>
+              <select id="iAgeKind">
+                <option value="ageM">修改时间 ageM</option>
+                <option value="ageC">创建时间 ageC</option>
+                <option value="ageA">访问时间 ageA</option>
+              </select>
+            </div>
+            <div class="fld w70">
+              <label>运算</label>
+              <select id="iAgeOp">
+                <option value="&lt;=">&lt;=</option>
+                <option value="&lt;">&lt;</option>
+                <option value="&gt;=">&gt;=</option>
+                <option value="&gt;">&gt;</option>
+                <option value="==">==</option>
+                <option value="">(无)</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>数值</label>
+              <input type="text" class="mono" id="iAgeNum" value="30">
+            </div>
+            <div class="fld w90">
+              <label>单位</label>
+              <select id="iAgeUnit">
+                <option value="n">n 分钟</option>
+                <option value="h">h 小时</option>
+                <option value="d" selected>d 天</option>
+                <option value="w">w 周</option>
+                <option value="m">m 月</option>
+                <option value="y">y 年</option>
+              </select>
+            </div>
+          </div>
+          <div class="hint">"无运算 + 单位 d" = 今天（如 <span class="kbd">ageM: d</span>）；<span class="kbd">ageM: 1 d</span> = 昨天；<span class="kbd">ageM: &lt; 0 d</span> = 修改时间在未来。</div>
+        </div>
+
+        <!-- 日期 -->
+        <div id="pDate" style="display:none">
+          <div class="row">
+            <div class="fld w110">
+              <label>时间种类</label>
+              <select id="iDateKind">
+                <option value="dateM">修改日期 dateM</option>
+                <option value="dateC">创建日期 dateC</option>
+                <option value="dateA">访问日期 dateA</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>方式</label>
+              <select id="iDateMode">
+                <option value="abs">绝对日期</option>
+                <option value="sub">子范围（周/月/时…）</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" id="rowDateAbs">
+            <div class="fld w70">
+              <label>运算</label>
+              <select id="iDateOp">
+                <option value="&gt;=">&gt;=</option>
+                <option value="&gt;">&gt;</option>
+                <option value="&lt;=">&lt;=</option>
+                <option value="&lt;">&lt;</option>
+                <option value="==">==</option>
+                <option value="">(无/区间)</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>日期（可用 YYYY-MM-DD，可带时间）</label>
+              <input type="text" class="mono" id="iDate1" value="2026-01-01">
+            </div>
+            <div class="fld">
+              <label>结束日期（区间，可空）</label>
+              <input type="text" class="mono" id="iDate2" placeholder="留空 = 单值">
+            </div>
+          </div>
+          <div class="row" id="rowDateSub" style="display:none">
+            <div class="fld w110">
+              <label>单元</label>
+              <select id="iDateUnit">
+                <option value="dw">dw 星期(一=1)</option>
+                <option value="m">m 月</option>
+                <option value="d">d 日</option>
+                <option value="h">h 时</option>
+                <option value="n">n 分</option>
+                <option value="y">y 年</option>
+                <option value="q">q 季度</option>
+                <option value="dy">dy 年内第几天</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>值或区间（如 6-7）</label>
+              <input type="text" class="mono" id="iDateSubVal" value="6-7">
+            </div>
+          </div>
+          <div class="hint">子范围例：<span class="kbd">dateM: dw 6-7</span> 周末修改 · <span class="kbd">dateC: h 8-10</span> 上午8-10点创建。<b>日期类只在列表生效，不上目录树。</b></div>
+        </div>
+
+        <!-- 大小 -->
+        <div id="pSize" style="display:none">
+          <div class="row">
+            <div class="fld w70">
+              <label>运算</label>
+              <select id="iSizeOp">
+                <option value="&gt;=">&gt;=</option>
+                <option value="&gt;">&gt;</option>
+                <option value="&lt;=">&lt;=</option>
+                <option value="&lt;">&lt;</option>
+                <option value="==">==</option>
+                <option value="">(无)</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>数值</label>
+              <input type="text" class="mono" id="iSizeNum" value="10">
+            </div>
+            <div class="fld w90">
+              <label>单位</label>
+              <select id="iSizeUnit">
+                <option value="">B 字节</option>
+                <option value="KB">KB</option>
+                <option value="MB" selected>MB</option>
+                <option value="GB">GB</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="fld">
+              <label>区间上限（可空）</label>
+              <input type="text" class="mono" id="iSize2" placeholder="如 100 MB，留空 = 不设上限">
+            </div>
+          </div>
+        </div>
+
+        <!-- 属性 -->
+        <div id="pAttr" style="display:none">
+          <div class="row"><div class="fld">
+            <label>属性（满足任一即可，分号 OR）</label>
+            <div class="chips" id="attrChips"></div>
+          </div></div>
+        </div>
+        <div id="pAttrList" style="display:none">
+          <div class="row"><div class="fld">
+            <label>属性组合（必须全部具备，AND）</label>
+            <div class="chips" id="attrListChips"></div>
+          </div></div>
+        </div>
+
+        <!-- 长度 -->
+        <div id="pLen" style="display:none">
+          <div class="row">
+            <div class="fld w70">
+              <label>运算</label>
+              <select id="iLenOp">
+                <option value="&gt;=">&gt;=</option>
+                <option value="&gt;">&gt;</option>
+                <option value="&lt;=">&lt;=</option>
+                <option value="&lt;">&lt;</option>
+                <option value="==">==</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>字符数</label>
+              <input type="text" class="mono" id="iLenNum" value="260">
+            </div>
+          </div>
+          <div class="hint">路径 &gt; 260 字符会导致复制/删除异常，建议高亮预警。</div>
+        </div>
+
+        <!-- prop -->
+        <div id="pProp" style="display:none">
+          <div class="row">
+            <div class="fld">
+              <label>属性名</label>
+              <select id="iPropName">
+                <option value="#empty" data-dv="2">#empty 空文件夹（值 2，加 B: 可上树）</option>
+                <option value="#nosubs" data-dv="2">#nosubs 无子文件夹（值 2）</option>
+                <option value="#itemcount" data-dv="1">#itemcount 条目数（值 1）</option>
+                <option value="#contains.desktop.ini" data-dv="1">#contains.desktop.ini 含 desktop.ini（值 1）</option>
+                <option value="#AspectRatio" data-dv="16:9">#AspectRatio 图片宽高比</option>
+                <option value="#HardLinks" data-dv="&gt; 1">#HardLinks 硬链接数</option>
+                <option value="dimensions" data-dv="1500 x *">dimensions 图片尺寸</option>
+                <option value="CameraModel" data-dv="*Canon*">CameraModel 相机型号</option>
+                <option value="#tags" data-dv="*重要*">#tags 标签</option>
+                <option value="custom">（自定义…）</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" id="rowPropCustom" style="display:none">
+            <div class="fld"><label>自定义属性名</label><input type="text" class="mono" id="iPropCustom"></div>
+          </div>
+          <div class="row">
+            <div class="fld"><label>属性值模式</label><input type="text" class="mono" id="iPropVal" placeholder="如 16:9 或 &gt; 1"></div>
+          </div>
+          <div class="row">
+            <div class="fld"><label>预过滤（强烈建议，提速）</label>
+              <input type="text" class="mono" id="iPropFilter" placeholder="如 D:\Photos\* 或 *.jpg;*.png">
+            </div>
+          </div>
+        </div>
+
+        <!-- tag -->
+        <div id="pTag" style="display:none">
+          <div class="row">
+            <div class="fld w110"><label>字段</label>
+              <select id="iTagKind">
+                <option value="tags:">tags: 标签</option>
+                <option value="lbl:">lbl: 标签(简)</option>
+                <option value="cmt:">cmt: 备注</option>
+              </select>
+            </div>
+            <div class="fld"><label>值</label><input type="text" class="mono" id="iTagVal" placeholder="加引号 = 精确匹配"></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 作用域 & 控制 -->
+        <div class="row">
+          <div class="fld">
+            <label>作用域（文件 / 文件夹）</label>
+            <select id="iScope">
+              <option value="">不限（默认）</option>
+              <option value="f">仅文件 f</option>
+              <option value="d">仅文件夹 d</option>
+            </select>
+          </div>
+          <div class="fld">
+            <label>生效位置（控制选择器）</label>
+            <select id="iTarget">
+              <option value="">默认（树+列表）</option>
+              <option value="T:">T: 仅目录树</option>
+              <option value="L:">L: 仅文件列表</option>
+              <option value="B:">B: 树+列表（prop 类必选）</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>② 着色与样式</h2>
+      <div class="body">
+        <div class="row">
+          <div class="fld">
+            <label>文字色（留空 = 默认，明暗模式自适应更稳）</label>
+            <div class="colorbox">
+              <div class="csamp" id="swFg"><input type="color" id="cFg" value="#003066"></div>
+              <div class="cprev" id="prevFgTxt">#003066</div>
+              <button class="btn sm" id="btnClrFg">清空</button>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="fld">
+            <label>背景色（留空 = 不着色背景）</label>
+            <div class="colorbox">
+              <div class="csamp" id="swBg"><input type="color" id="cBg" value="#CADCFF"></div>
+              <div class="cprev" id="prevBgTxt">#CADCFF</div>
+              <button class="btn sm" id="btnClrBg">清空</button>
+            </div>
+          </div>
+        </div>
+        <div class="row"><div class="fld">
+          <label>常用配色（点击套用 文字+背景）</label>
+          <div class="swatches" id="presetColors"></div>
+        </div></div>
+        <div class="row"><div class="fld">
+          <label>样式开关（| 后字母，可多选）</label>
+          <div class="chips">
+            <span class="chip" data-sw="b">b 粗框2px</span>
+            <span class="chip" data-sw="f">f 细框1px</span>
+            <span class="chip" data-sw="p">p 车牌(需配f/b)</span>
+            <span class="chip" data-sw="r">r 圆角</span>
+            <span class="chip" data-sw="s">s 特殊形状</span>
+            <span class="chip" data-sw="w">w 铺满整列</span>
+            <span class="chip" data-sw="-r">-r 强制方角</span>
+            <span class="chip" data-sw="-s">-s 不用形状</span>
+          </div>
+        </div></div>
+        <div class="row">
+          <div class="fld"><label>标题（可选，仅即时过滤器显示为菜单名）</label>
+            <input type="text" id="iTitle" placeholder="如 今天修改过的公文"></div>
+        </div>
+        <div class="row">
+          <div class="fld"><label>注释（可选，// 后内容）</label>
+            <input type="text" id="iComment" placeholder="如 Office 文档">
+            <div class="chips" style="margin-top:6px">
+              <span class="chip tiny" data-sw2="m">m 合并下条文字色</span>
+              <span class="chip tiny" data-sw2="n">n 仅着色名称列</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>③ 多档渐变 <span class="tag">||</span></h2>
+      <div class="body">
+        <div class="hint" style="margin-bottom:9px">同一条规则内用 <span class="kbd">||</span> 串多个「条件&gt;颜色」，<b>从上往下第一条命中的生效</b>，适合做程度渐变（如按修改时间由近到远、按体积由大到小）。</div>
+        <div id="tierList"></div>
+        <div class="btnrow">
+          <button class="btn sm" id="btnAddTier">+ 把当前条件加入档位</button>
+          <button class="btn sm" id="btnClearTier">清空档位</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>④ 条件组合器 <span class="tag">AND / OR / NOT</span></h2>
+      <div class="body">
+        <div class="hint" style="margin-bottom:9px">
+          把多个原子条件组合成一条规则。<code>;</code>=OR（同档内），<code>AND</code>=并且，<code>!</code>=取反。
+          XYplorer 颜色过滤器<b>不支持正则表达式</b>，只有 <code>*</code> 和 <code>?</code> 两个通配符。
+        </div>
+        <div id="comboList"></div>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn sm" id="btnComboAdd">+ 添加条件</button>
+          <button class="btn sm" id="btnComboClear">清空</button>
+          <button class="btn sm pri" id="btnComboApply">合成并预览</button>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <div class="fld">
+            <label>合成结果</label>
+            <input type="text" class="mono" id="comboOut" readonly placeholder="点击「合成并预览」">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⑤ 批量生成 <span class="tag">按扩展名建整套配色</span></h2>
+      <div class="body">
+        <div class="hint" style="margin-bottom:9px">
+          每行一组，格式 <code>名称|扩展名模式</code>（用 <code>;</code> 分隔多个扩展名）。
+          颜色自动从当前配色方案依次取用。
+        </div>
+        <textarea id="batchInput" style="min-height:120px">文档|*.doc;*.docx;*.wps
+表格|*.xls;*.xlsx;*.csv
+演示|*.ppt;*.pptx
+PDF|*.pdf
+图片|*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.webp
+压缩包|*.zip;*.rar;*.7z
+音视频|*.mp3;*.wav;*.mp4;*.avi;*.mov
+程序|*.exe;*.msi;*.bat;*.cmd</textarea>
+        <div class="row" style="margin-top:8px">
+          <div class="fld">
+            <label>配色方案</label>
+            <div class="chips" id="paletteChips"></div>
+          </div>
+        </div>
+        <div class="btnrow" style="margin-top:6px">
+          <button class="btn pri sm" id="btnBatchGen">生成并存入「我的配方」</button>
+          <button class="btn sm" id="btnBatchPreview">预览配色</button>
+        </div>
+        <div id="batchPreview" style="margin-top:9px"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= 中：预览 ================= -->
+  <div class="col-pv">
+    <div class="card">
+      <h2>实时预览 <span class="tag">模拟 XYplorer 列表</span></h2>
+      <div class="body">
+        <div class="pvbar">
+          <button class="btn sm pri" id="btnApply">▶ 应用并预览</button>
+          <button class="btn sm" id="btnAuto">自动预览：开</button>
+          <span class="mini" id="pvInfo"></span>
+        </div>
+        <div class="pv">
+          <div class="pvh">
+            <div class="c1">名称</div><div class="c2">大小</div><div class="c3">修改时间</div>
+          </div>
+          <div id="pvRows"></div>
+        </div>
+        <div class="hint" style="margin-top:7px">样本为通用演示数据，覆盖常见文件类型与状态。预览仅覆盖常用语法，最终以 XYplorer 实际效果为准。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>生成的规则</h2>
+      <div class="body">
+        <div class="out" id="outRule"></div>
+        <div class="row" style="margin-top:9px">
+          <div class="fld" style="display:flex;align-items:center;gap:7px">
+            <input type="checkbox" id="cPlus" checked style="width:auto">
+            <label style="margin:0;cursor:pointer" for="cPlus">行首加 <span class="kbd">+</span>（启用该条）</label>
+          </div>
+        </div>
+        <div class="btnrow" style="margin-top:4px">
+          <button class="btn pri sm" id="btnCopyRule">复制规则</button>
+          <button class="btn gh sm" id="btnSaveMy">存入「我的配方」</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="cardHelp" style="display:none">
+      <h2>语法速查（官方帮助要点）</h2>
+      <div class="body exdetails">
+        <p><b>一行规则结构</b><br>
+        <code>[+] ["标题"] [T:|L:|B:] 选择器: 模式 [d|f] [|开关] [//注释] &gt;前景色[,背景色]</code></p>
+        <p><b>运算符</b> <code>== &lt; &gt; &lt;= &gt;=</code>，区间 <code>min - max</code> / <code>-&lt;</code> / <code>&gt;-</code> / <code>&gt;&lt;</code></p>
+        <p><b>布尔</b> <code>;</code>=OR · <code>AND</code>/<code>&amp;</code>=AND（前后留空格）· <code>!</code>/<code>NOT</code>=NOT · <code>"…"</code>=精确匹配</p>
+        <p><b>age 单位</b> y年 q季 m月 w周 d天(默认) h时 n分 s秒（<b>数字与单位间必须有空格</b>）</p>
+        <p><b>date 单元</b> y q m dw(周一=1) dy d h n s ms</p>
+        <p><b>size 单位</b> B KB MB GB TB PB（可小数、可加空格）</p>
+        <p><b>属性</b> readonly(r) hidden(h) system(s) directory(d) archive(a) normal(n) temporary(t) junction(l) compressed(c) offline(o) encrypted(e) indexednot(i) pinned(p) unpinned(u)</p>
+        <p><b>高级</b> 注释区 <code>//[m|n]|[filter:预过滤]|[filternot:排除]|注释</code>；
+        <code>m</code>=合并下条文字色，<code>n</code>=只着色名称列</p>
+        <p><b>注意</b> 只有基于<b>名称 / 属性 / age</b> 的规则能上目录树；<code>prop:</code> 较慢务必加预过滤。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 右：库与导出 ================= -->
+  <div class="col-out">
+
+    <div class="card">
+      <h2>① 连接 XYplorer <span class="tag" id="connTag">未连接</span></h2>
+      <div class="body">
+        <div id="browserMode" style="display:none" class="warnbox">
+          当前运行在<b>浏览器模式</b>：受浏览器沙箱限制，无法直接读写 <code>XYplorer.ini</code>。
+          请从「③ 导出结果」复制规则，手动粘贴到 XYplorer（工具 → 列表管理 → 颜色过滤器 → F6 编辑模式）。
+          若要一键读写与自动备份，请运行打包好的 <b>exe 版本</b>。
+        </div>
+        <div id="tauriMode">
+          <div class="kv"><span>配置文件</span><b id="stPath">—</b></div>
+          <div class="kv"><span>状态</span><b id="stExist">—</b></div>
+          <div class="kv"><span>最后修改</span><b id="stMod">—</b></div>
+          <div class="kv"><span>备份数量</span><b id="stBak">—</b></div>
+          <div class="kv"><span>XYplorer</span><b id="stRun">—</b></div>
+          <div id="runWarn" class="warnbox" style="display:none">
+            ⚠️ XYplorer 正在运行。它会<span class="red">在退出时把内存中的配置回写到 ini</span>，覆盖你刚写入的内容。
+            建议先关闭 XYplorer 再写入。
+          </div>
+          <div class="btnrow" style="margin-top:9px">
+            <button class="btn pri sm" id="btnRefresh">刷新状态</button>
+            <button class="btn sm" id="btnLoadIni">读取现有规则</button>
+            <button class="btn gh sm" id="btnWriteIni">写入 XYplorer</button>
+            <button class="btn sm" id="btnBackupNow">立即备份</button>
+            <button class="btn sm" id="btnOpenBak">打开备份目录</button>
+          </div>
+          <div class="hint" style="margin-top:7px">
+            「读取现有规则」会把你 ini 里的 <code>[ColorFilter]</code> 段完整读进来，可在下方列表里逐条编辑；
+            「写入 XYplorer」会<b>先自动备份</b>再写入，出问题可在备份列表一键回滚。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>② 现有规则 <span class="tag" id="iniCount">0</span></h2>
+      <div class="body">
+        <div class="hint" style="margin-bottom:8px">
+          从 XYplorer 读到的规则。在下方「我的配方」勾选条目 → 点「导入所选 → 现有规则并写入」一键生效；也可点某条规则载入左侧修改，勾/去「启用」即加/去行首的 <span class="kbd">+</span>。
+        </div>
+        <div class="mylist" id="iniList"><div class="empty">尚未读取。点上方「读取现有规则」。</div></div>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn sm pri" id="btnWriteSection">仅替换 [ColorFilter] 段</button>
+          <button class="btn sm" id="btnSyncMy">全部转入「我的配方」</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>我的配方 <span class="tag" id="myCount">0</span></h2>
+      <div class="body">
+        <div class="selbar">
+          <label><input type="checkbox" id="mySelAll"> 全选</label>
+          <span class="sp"></span>
+          <span class="cnt" id="mySelCnt">已选 0 项</span>
+        </div>
+        <div class="mylist" id="myList"></div>
+        <div class="divider"></div>
+        <div class="btnrow">
+          <button class="btn sm pri" id="btnImportSel">导入所选 → 现有规则并写入 ▶</button>
+          <button class="btn sm" id="btnGenIni">生成 ini 片段</button>
+          <button class="btn sm" id="btnCopyAll">复制全部</button>
+          <button class="btn sm" id="btnExport">导出 .txt</button>
+          <button class="btn sm" id="btnImport">导入文本</button>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <div class="fld">
+            <label>导入区（粘贴规则文本，每行一条；含 <span class="kbd">||</span> 的多档会整体保留）</label>
+            <textarea id="iImport" placeholder="+*.docx>003066,CADCFF&#10;+ageM: d>FFFFFF,74C622"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>回滚备份 <span class="tag" id="bakCount">0</span></h2>
+      <div class="body">
+        <div class="mylist" id="bakList"><div class="empty">暂无备份</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>内置配方库 <span class="tag">分类 · 点击载入</span></h2>
+      <div class="body">
+        <div class="lib" id="presetLib"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>导出结果（ini 片段）</h2>
+      <div class="body">
+        <div class="inout" id="outIni">点击「生成 ini 片段」…</div>
+        <div class="btnrow" style="margin-top:9px">
+          <button class="btn sm pri" id="btnCopyIni">复制</button>
+          <button class="btn sm" id="btnSaveIni">保存 .ini</button>
+        </div>
+        <div class="hint" style="margin-top:7px">
+          用法：退出 XYplorer → 打开 <code>%APPDATA%\XYplorer\XYplorer.ini</code> → 用本片段整体替换 <code>[ColorFilter]</code> 段。<br>
+          或在软件内：工具 → 列表管理 → 颜色过滤器 → 按 <b>F6</b> 进编辑模式，直接粘贴规则行。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   XYplorer 颜色过滤器配方生成器
+   规则来源：XYplorer 28.30 官方帮助 idh_colorfilters.htm
+   ========================================================= */
+
+/* ---------- 数据 ---------- */
+const EXT_GROUPS = [
+  {t:'Office', v:'*.doc;*.docx;*.xls;*.xlsx;*.ppt;*.pptx'},
+  {t:'Word',   v:'*.doc;*.docx'},
+  {t:'Excel',  v:'*.xls;*.xlsx;*.csv'},
+  {t:'PPT',    v:'*.ppt;*.pptx'},
+  {t:'PDF',    v:'*.pdf'},
+  {t:'图片',   v:'*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.webp;*.tif'},
+  {t:'压缩包', v:'*.zip;*.rar;*.7z;*.tar;*.gz'},
+  {t:'音视频', v:'*.mp3;*.wav;*.mp4;*.avi;*.mov;*.mkv;*.flac'},
+  {t:'程序',   v:'*.exe;*.msi;*.bat;*.cmd;*.com;*.scr'},
+  {t:'代码',   v:'*.js;*.ts;*.py;*.html;*.css;*.json;*.dart'},
+  {t:'文本',   v:'*.txt;*.ini;*.log;*.md'},
+  {t:'字体',   v:'*.ttf;*.otf;*.woff;*.woff2'},
+];
+const ATTRS = ['readonly','hidden','system','directory','archive','normal','temporary','junction','compressed','offline','encrypted','indexednot','pinned','unpinned'];
+/* 配色方案：
+   经典       - 语义色，信息密度高
+   色盲友好   - Okabe-Ito 调色板，避开红绿相邻（约 8% 男性红绿色盲）
+   低饱和     - 长时间看不累，适合全屏铺色
+   原则：同时生效的配色 ≤ 4-6 种；文字/背景对比度尽量 ≥ 4.5:1；
+        XYplorer 的配色不随明暗主题变化，所以单组色须在两种模式下都可读。 */
+const PALETTES = {
+  '经典': [
+    ['#003066','#CADCFF'],['#7F0000','#FFD9D9'],['#0B6B3A','#D8F3E2'],['#8A5300','#FFE9C2'],
+    ['#4A2C82','#E7DBFA'],['#0F6E7B','#D3F0F4'],['#FFFFFF','#74C622'],['#FFFFFF','#B97026'],
+    ['#FFFFFF','#C0392B'],['#FFFFFF','#2F6BEF'],['#1F2430','#E3E6EB'],['#4199E0','#E0E2ED'],
+    ['#933968','#F3E3D9'],['#CC6600','#FFE8CC'],['#5E738C','#EDF0F4'],['#7800F0','#EEDDFF'],
+  ],
+  '色盲友好': [
+    ['#000000','#E69F00'],['#000000','#56B4E9'],['#000000','#009E73'],['#000000','#F0E442'],
+    ['#000000','#0072B2'],['#000000','#D55E00'],['#000000','#CC79A7'],['#000000','#B8B8B8'],
+    ['#FFFFFF','#0072B2'],['#FFFFFF','#D55E00'],['#FFFFFF','#009E73'],['#FFFFFF','#7A5AA8'],
+    ['#1F2430','#E8E8E8'],['#0072B2','#EAF1FE'],['#D55E00','#FDECE0'],['#009E73','#E3F5EF'],
+  ],
+  '低饱和': [
+    ['#3A4A5C','#DCE3EA'],['#6B4A4A','#F0E2E2'],['#42604F','#E0EBE3'],['#6B5B3A','#F2EBDC'],
+    ['#544A6B','#E7E3F0'],['#3D5C63','#DDE8EA'],['#FFFFFF','#7FA07A'],['#FFFFFF','#B09268'],
+    ['#FFFFFF','#A87070'],['#FFFFFF','#6E86A8'],['#1F2430','#EDEFF2'],['#5E738C','#E4E8ED'],
+    ['#7A6259','#EFE7E1'],['#8A7048','#F2E9DA'],['#5E738C','#EEF1F4'],['#6B5A80','#EAE4F0'],
+  ],
+};
+let CUR_PAL = '经典';
+let PRESET_COLORS = PALETTES[CUR_PAL];
+/* 配方分类顺序（用于折叠分组展示）。每条约 [名称, 条件, 文字色, 背景色, 分类] */
+const CAT_ORDER = ['时间热度','文件类型','属性状态','命名场景','文件夹','高级玩法'];
+const PRESETS = [
+  /* —— 时间热度（修改 / 新建 / 访问 / 异常）—— */
+  ['今天修改','ageM: d','FFFFFF','74C622','时间热度'],
+  ['本周修改','ageM: w','FFFFFF','B97026','时间热度'],
+  ['近30分钟','ageM f: <= 30 n','FFFFFF','5C9E1B','时间热度'],
+  ['今天新建','ageC: d','FFFFFF','379BFF','时间热度'],
+  ['本周新建','ageC: w','FFFFFF','71B8FF','时间热度'],
+  ['昨天修改','ageM: <= 1 d','FFFFFF','EF6C00','时间热度'],
+  ['近7天修改','ageM: <= 7 d','E65100','FFE0B2','时间热度'],
+  ['近30天修改','ageM: <= 30 d','FFFFFF','F4A93D','时间热度'],
+  ['超过30天未动','ageM: > 30 d','607D8B','ECEFF1','时间热度'],
+  ['超过1年未动','ageM: > 365 d','455A64','CFD8DC','时间热度'],
+  ['今天访问','ageA: d','E3F2FD','1E88E5','时间热度'],
+  ['本周访问','ageA: w','E3F2FD','42A5F5','时间热度'],
+  ['修改于今年','dateM: y 2026','1565C0','E8EAF6','时间热度'],
+  ['今年新建文件','dateC: y 2026','1565C0','E3F2FD','时间热度'],
+  ['时间异常(未来)','ageM: < 0 d','FFFFFF','FF00FF','时间热度'],
+
+  /* —— 文件类型（按扩展名）—— */
+  ['Office 公文','*.doc;*.docx;*.xls;*.xlsx;*.ppt;*.pptx','003066','CADCFF','文件类型'],
+  ['PDF 文件','*.pdf','7F0000','FFD9D9','文件类型'],
+  ['图片','*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.webp','36530F','E6F786','文件类型'],
+  ['压缩包','*.zip;*.rar;*.7z','CC6600','FFE8CC','文件类型'],
+  ['音视频','*.mp3;*.wav;*.mp4;*.avi;*.mov','4A2C82','E7DBFA','文件类型'],
+  ['程序/脚本','*.exe;*.bat;*.cmd;*.msi','804000','FFFFAA','文件类型'],
+  ['文档(非Office)','*.txt;*.md;*.rtf;*.log','37474F','ECEFF1','文件类型'],
+  ['纯文本/配置','*.txt;*.log;*.ini;*.csv','00695C','E0F2F1','文件类型'],
+  ['图片RAW','*.cr2;*.nef;*.arw;*.dng','4E342E','EFEBE9','文件类型'],
+  ['视频','*.mp4;*.avi;*.mov;*.mkv;*.flv','311B92','EDE7F6','文件类型'],
+  ['网页源码','*.html;*.htm;*.css;*.js','006064','E0F7FA','文件类型'],
+  ['代码文件','*.c;*.cpp;*.h;*.py;*.java;*.cs;*.go;*.rs','1B5E20','DCEDC8','文件类型'],
+  ['数据/结构化','*.json;*.xml;*.yaml;*.yml;*.toml;*.sql','006064','B2EBF2','文件类型'],
+  ['矢量/设计稿','*.svg;*.psd;*.ai;*.xd','4A148C','E1BEE7','文件类型'],
+  ['字体文件','*.ttf;*.otf;*.woff;*.woff2','3E2723','D7CCC8','文件类型'],
+  ['电子书','*.epub;*.mobi','BF360C','FBE9E7','文件类型'],
+  ['数据库文件','*.db;*.sqlite;*.mdb','263238','B0BEC5','文件类型'],
+
+  /* —— 属性状态（大小 / 属性 / 长度）—— */
+  ['空文件','size: 0','4199E0','E0E2ED','属性状态'],
+  ['大文件 ≥10MB','size: >= 10 MB','FFFFFF','E65100','属性状态'],
+  ['大文件 ≥100MB','size: >= 100 MB','FFFFFF','C0392B','属性状态'],
+  ['超大文件≥1GB','size: >= 1 GB','FFFFFF','7B1FA2','属性状态'],
+  ['小文件（<10KB）','size: < 10 KB','FFFFFF','90A4AE','属性状态'],
+  ['只读（已定稿）','attr f:readonly','47A905','FFFF80','属性状态'],
+  ['系统文件','attr:system','FF0000','FFFF80','属性状态'],
+  ['隐藏文件','attr:hidden','5E738C','E3E6EB','属性状态'],
+  ['归档属性（可离线）','attr:archive','5D4037','D7CCC8','属性状态'],
+  ['路径超长','len: >= 260','FFFFFF','D94235','属性状态'],
+  ['超长文件名','lenT: >= 64','E65100','FFF3E0','属性状态'],
+  ['软链接/目录联接','attr:junction','00695C','B2DFDB','属性状态'],
+
+  /* —— 命名场景（按名称关键词）—— */
+  ['公文热词','*汇报*;*总结*;*台账*;*请示*','8B0000','FFF0C0','命名场景'],
+  ['临时文件','*.tmp;*.temp;*.bak;~*','6B7280','F1F3F5','命名场景'],
+  ['备份/副本','*备份*;*副本*;*bak*;~*','5D4037','EFEBE9','命名场景'],
+  ['名称含"最终版/定稿"','*最终版*;*定稿*;*终稿*','B71C1C','FFCDD2','命名场景'],
+  ['扫描件','*扫描*','4E342E','D7CCC8','命名场景'],
+  ['临时下载残留','*.part;*.crdownload;*.tmp','455A64','CFD8DC','命名场景'],
+  ['名称含"草稿"','*草稿*','827717','F0EAD6','命名场景'],
+  ['名称含"测试"','*测试*;*test*;*Test*','AD1457','FCE4EC','命名场景'],
+  ['名称含"旧版/废弃"','*旧*;*废弃*;*old*','757575','E0E0E0','命名场景'],
+
+  /* —— 文件夹（目录属性 / 空目录检测）—— */
+  ['空文件夹','B:prop:#empty:2|f','A3A4A7','DCE4E9','文件夹'],
+  ['伪空文件夹(仅desktop.ini)','B:prop:#contains.desktop.ini:1 AND B:prop:#itemcount:1|f','A3A4A7','DCE4E9','文件夹'],
+  ['空或伪空文件夹','B:prop:#contains.desktop.ini:1 AND B:prop:#itemcount:1;B:prop:#empty:2','8A6D3B','FCF8E3','文件夹'],
+  ['无子文件夹','L:prop:#nosubs:2','5382D9','','文件夹'],
+  ['排除网络盘的空夹','B:prop:#empty:2|f //|filter:C:*|filternot:Z:*','A3A4A7','DCE4E9','文件夹'],
+  ['排除回收站路径','B:prop:#empty:2|f //|filter:C:*;D:*;E:*','A3A4A7','DCE4E9','文件夹'],
+
+  /* —— 高级玩法（来源 XYplorer 官方论坛 / Release Notes，已验证语法）—— */
+  ['多硬链接文件','prop:#HardLinks: > 1','4A2C82','E7DBFA','高级玩法'],
+  ['16:9 图片','prop:#AspectRatio: 16:9','5A4F36','F7E686','高级玩法'],
+  ['16:10 图片','prop:#AspectRatio: 16:10','5A4F36','F7E686','高级玩法'],
+  ['宽度≥1500px 图','prop:dimensions: 1500 x *','0B6B3A','D8F3E2','高级玩法'],
+  ['竖图(高>宽)','prop:dimensions: * x 1500','0B6B3A','D8F3E2','高级玩法'],
+  ['4K 及以上图片','prop:dimensions: 3840 x *','0B6B3A','D8F3E2','高级玩法'],
+  ['带拍摄信息的照片','prop:CameraModel: *','36530F','E6F786','高级玩法'],
+  ['相机 Canon','prop:CameraModel: *Canon*','36530F','E6F786','高级玩法'],
+  ['相机 Nikon','prop:CameraModel: *Nikon*','36530F','E6F786','高级玩法'],
+  ['含 GPS 位置','prop:#GPS: *','0F6E7B','D3F0F4','高级玩法'],
+  ['视频时长≥5分钟','prop:#Duration: >= 00:05:00','4A2C82','E7DBFA','高级玩法'],
+  ['标签:待归档','tags:"待归档"','8B0000','FFF0C0','高级玩法'],
+  ['标签:已完成','tags:"已完成"','8B0000','FFF0C0','高级玩法'],
+  ['备注含2026','cmt: 2026','0F6E7B','D3F0F4','高级玩法'],
+  ['备注非空','cmt: *','0F6E7B','D3F0F4','高级玩法'],
+  ['硬链接≥3','prop:#HardLinks: >= 3','4A2C82','E7DBFA','高级玩法'],
+  ['m合并:只取文字色','ageM: d //m|今天修改(合并)','FF5722','','高级玩法'],
+  ['n开关:仅着色名称列','*.bak //n|只着色名称列','6B7280','F1F3F5','高级玩法'],
+];
+/* 多档渐变模板（整体载入，非单条） */
+const TIER_TEMPLATES = [
+  ['时间热力(今/周/月)', 'ageM: d>FFFFFF,FF6F00||ageM: w>FFFFFF,EF6C00||ageM: m>CFD8DC,37474F'],
+  ['体积分层(GB/MB/KB)', 'size: >= 1 GB>000000,8A939F||size: >= 100 MB>003080,8EA4C4||size: >= 10 MB>004080,A9BAD3||size: >= 1 MB>0053A6,BCCCDE||size: >= 1 KB>0E80DC,D1DAE9'],
+  ['近期热度(5分/1时/24时)', 'ageM f: <= 5 n>FFFF00,4F831B||ageM f: <= 1 h>FFFF00,63A521||ageM f: <= 24 h>FFFFFF,70B926'],
+  ['文件夹创建时间(3时/今/本周)', 'ageC d: <= 3 h>FFFF00,0073E6||ageC d: d>FFFF80,379BFF||ageC d: w>FFFFFF,71B8FF'],
+];
+/* 预览样本：通用演示数据（不含任何个人信息，覆盖名称/类型/大小/属性/时长/长度/文件夹等） */
+const SAMPLE = [
+  {n:'季度销售报表.xlsx', e:'xlsx', sz:245000, ageD:0.1, len:30, a:'a', d:false},
+  {n:'项目总结报告.docx', e:'docx', sz:88000, ageD:2.4, len:28, a:'a', d:false},
+  {n:'产品发布演示.pptx', e:'pptx', sz:15800000, ageD:0.9, len:36, a:'a', d:false},
+  {n:'用户操作手册.pdf', e:'pdf', sz:3400000, ageD:30, len:38, a:'a', d:false},
+  {n:'读书笔记.txt', e:'txt', sz:4200, ageD:3, len:18, a:'a', d:false},
+  {n:'宣传短片.mp4', e:'mp4', sz:268000000, ageD:4, len:24, a:'a', d:false},
+  {n:'证件照.png', e:'png', sz:1850000, ageD:1.2, len:30, a:'a', d:false},
+  {n:'Logo设计稿.svg', e:'svg', sz:64000, ageD:12, len:24, a:'a', d:false},
+  {n:'资料归档.zip', e:'zip', sz:134000000, ageD:21, len:28, a:'a', d:false},
+  {n:'配置文件.ini', e:'ini', sz:2048, ageD:120, len:20, a:'a', d:false},
+  {n:'完整备份镜像.iso', e:'iso', sz:1500000000, ageD:10, len:24, a:'a', d:false},
+  {n:'~$临时编辑副本.docx', e:'docx', sz:165, ageD:0.005, len:26, a:'ah', d:false},
+  {n:'2025年度档案', e:'', sz:0, ageD:400, len:26, a:'d', d:true},
+  {n:'符号链接目录', e:'', sz:0, ageD:1, len:14, a:'l', d:true},
+  {n:'Final_Project_Acceptance_Report_Client_Confirmed_Revised_V2_Supplementary_Archive.pdf', e:'pdf', sz:920000, ageD:45, len:81, a:'a', d:false},
+];
+
+/* ---------- 状态 ---------- */
+let ST = {
+  switches:new Set(),
+  attr:new Set(),
+  attrList:new Set(),
+  tiers:[],              // {cond,fg,bg}
+  my:[],                 // {name,def,fg,bg}
+  auto:true,
+  mSwitch:false,         // //m 合并下条文字色
+  nSwitch:false,         // //n 仅着色名称列
+};
+const $ = s=>document.querySelector(s);
+const $$ = s=>[...document.querySelectorAll(s)];
+
+/* ---------- 工具 ---------- */
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),1700);}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function hex(s){return s?s.replace('#','').toUpperCase():'';}
+function fmtSize(b){
+  if(b===0) return '0 B';
+  const u=['B','KB','MB','GB']; let i=0,v=b;
+  while(v>=1024&&i<3){v/=1024;i++;}
+  return (i===0? v.toFixed(0) : v.toFixed(v<10?1:0))+' '+u[i];
+}
+function fmtAge(d){
+  if(d<1/24) return Math.max(1,Math.round(d*24*60))+' 分钟前';
+  if(d<1) return Math.round(d*24)+' 小时前';
+  if(d<30) return Math.round(d)+' 天前';
+  if(d<365) return Math.round(d/30)+' 个月前';
+  return (d/365).toFixed(1)+' 年前';
+}
+function ico(f){
+  if(f.d) return '📁';
+  const m={xlsx:'📗',docx:'📘',pptx:'📙',pdf:'📕',png:'🖼',jpg:'🖼',zip:'🗜',exe:'⚙',ini:'🗒',tmp:'🗒',csv:'📗'};
+  return m[f.e]||'📄';
+}
+/* 切分「条件>前景,背景」：严格 6 位 hex，避免误吃 >= 等运算符里的 > */
+function splitColor(s){
+  const m=String(s).match(/>\s*([0-9A-Fa-f]{6})?\s*(?:,\s*([0-9A-Fa-f]{6})?\s*)?$/);
+  if(!m) return {cond:String(s),fg:'',bg:'',has:false};
+  return {cond:String(s).slice(0,m.index),fg:(m[1]||'').toUpperCase(),bg:(m[2]||'').toUpperCase(),has:true};
+}
+function parseSize(s){
+  if(!s) return null;
+  const m=String(s).trim().match(/^([\d.]+)\s*(B|KB|MB|GB|TB|PB)?$/i);
+  if(!m) return null;
+  const u=(m[2]||'B').toUpperCase();
+  const k={B:1,KB:1024,MB:1048576,GB:1073741824,TB:1099511627776,PB:1125899906842624};
+  return parseFloat(m[1])*(k[u]||1);
+}
+function cmp(v,op,target){
+  switch(op){
+    case '<':  return v<target;
+    case '<=': return v<=target;
+    case '>':  return v>target;
+    case '>=': return v>=target;
+    case '==': return v==target;
+    default:   return Math.abs(v-target)<1e-9;
+  }
+}
+
+/* ---------- 构建条件串 ---------- */
+function buildCond(){
+  if(COMBO_ACTIVE) return COMBO_ACTIVE;   // 条件组合器接管
+  const t=$('#selType').value, scope=$('#iScope').value;
+  const sc = scope? ' '+scope : '';
+  let c='';
+  if(t==='name'||t==='dir'){
+    let p=$('#iPattern').value.trim();
+    if(!p) return '';
+    if($('#cExact').checked && !/^".*"$/.test(p)) p='"'+p+'"';
+    if(t==='dir') c='dir:'+p;
+    else if(scope==='d') c='dir:'+p;
+    // 无选择器=name f:；但引号开头的模式必须显式带 name:，否则会被解析成「标题」而非匹配模式
+    else if(scope==='f') c = (/^"/.test(p) ? 'name f:'+p : p);
+    else c='name:'+p;
+  }
+  else if(t==='age'){
+    c=$('#iAgeKind').value+sc+': '+[$('#iAgeOp').value,$('#iAgeNum').value.trim(),$('#iAgeUnit').value].filter(x=>x!=='').join(' ');
+  }
+  else if(t==='date'){
+    const k=$('#iDateKind').value;
+    if($('#iDateMode').value==='abs'){
+      const op=$('#iDateOp').value, d1=$('#iDate1').value.trim(), d2=$('#iDate2').value.trim();
+      c=k+sc+': '+(op?op+' ':'')+d1+(d2? ' - '+d2 : '');
+    }else{
+      c=k+sc+': '+$('#iDateUnit').value+' '+$('#iDateSubVal').value.trim();
+    }
+  }
+  else if(t==='size'){
+    const op=$('#iSizeOp').value, n=$('#iSizeNum').value.trim(), u=$('#iSizeUnit').value, s2=$('#iSize2').value.trim();
+    const v1=[op,n,u].filter(x=>x!=='').join(' ');
+    c='size'+sc+': '+v1+(s2? ' - '+s2 : '');
+  }
+  else if(t==='attr'){
+    if(!ST.attr.size) return '';
+    c='attr'+sc+':'+[...ST.attr].join('; attr:');
+  }
+  else if(t==='attrlist'){
+    if(!ST.attrList.size) return '';
+    c='attrlist'+sc+':'+[...ST.attrList].map(x=>x[0]).join('');   // 官方语法为首字母序列，如 attrlist:hs
+  }
+  else if(t==='len'||t==='lenT'){
+    c=(t==='len'?'len':'lenT')+sc+': '+$('#iLenOp').value+' '+$('#iLenNum').value.trim();
+  }
+  else if(t==='prop'){
+    let pn=$('#iPropName').value;
+    if(pn==='custom') pn=$('#iPropCustom').value.trim();
+    if(!pn) return '';
+    const pv=$('#iPropVal').value.trim();
+    c='prop'+sc+':'+pn.replace(/:+$/,'')+':'+(pv||'*');
+    // 预过滤位于注释区第 2 段：//[开关]|[filter:...]|[filternot:...]|[注释]
+    const pf=$('#iPropFilter').value.trim();
+    if(pf) c+=' //|filter:'+pf;
+  }
+  else if(t==='tag'){
+    const v=$('#iTagVal').value.trim();
+    if(!v) return '';
+    c=$('#iTagKind').value+sc.replace(' ','')+v;
+  }
+  // 样式开关
+  const sw=[...ST.switches].join('');
+  if(sw){
+    // 开关加在模式末尾（注释之前）
+    if(c.includes('//')){
+      const i=c.indexOf('//');
+      c=c.slice(0,i).trimEnd()+'|'+sw+' '+c.slice(i);
+    } else c=c.trimEnd()+'|'+sw;
+  }
+  return c.trim();
+}
+function buildRule(){
+  const target=$('#iTarget').value;
+  const title=$('#iTitle').value.trim();
+  const comment=$('#iComment').value.trim();
+  const fg=hex($('#cFg').dataset.on==='0'?'':$('#cFg').value);
+  const bg=hex($('#cBg').dataset.on==='0'?'':$('#cBg').value);
+  const plus=$('#cPlus').checked?'+':'';
+  const colorPart=(fg||bg)? '>'+fg+(bg?','+bg:'') : '';
+  if(ST.tiers.length){
+    const parts=ST.tiers.map(t=>{
+      const cp=(t.fg||t.bg)? '>'+t.fg+(t.bg?','+t.bg:'') : '';
+      return t.cond+cp;
+    });
+    return plus+(title?'"'+title+'" ':'')+target+parts.join('||');
+  }
+  const c=buildCond();
+  if(!c) return '';
+  // 注释必须位于颜色之前
+  const withComment = comment ? insertComment(c,comment) : c;
+  return plus+(title?'"'+title+'" ':'')+target+withComment+colorPart;
+}
+/* 注释区结构：//[m|n]|[filter:预过滤]|[filternot:排除]|[注释]
+   只有 m/n 开关而无预过滤时，注释直接跟在开关后（//m|注释） */
+function insertComment(c,comment){
+  const sw = ST.mSwitch? 'm' : (ST.nSwitch? 'n' : '');
+  if(!comment && !sw) return c;
+  const i=c.indexOf('//');
+  if(i<0) return c.trimEnd()+' //'+(sw? sw+'|' : '')+comment;
+  const head=c.slice(0,i+2), segs=c.slice(i+2).split('|');
+  if(segs.length===1 && !sw){
+    const old=segs[0].trim();
+    return head+(old? old+' '+comment : comment);
+  }
+  if(sw) segs[0]=sw;
+  while(segs.length<3) segs.push('');
+  segs[3]=comment||'';
+  return head+segs.join('|');
+}
+
+/* ---------- 预览匹配 ---------- */
+/* 按 || 拆档：注释区内的 ||（如 //||filternot:）不拆 */
+function splitTiers(def){
+  const out=[];let cur='',i=0,inC=false;
+  while(i<def.length){
+    if(def[i]==='/'&&def[i+1]==='/'){inC=true;cur+='//';i+=2;continue;}
+    if(inC&&def[i]==='>'){inC=false;cur+='>';i++;continue;}
+    if(!inC&&def[i]==='|'&&def[i+1]==='|'){out.push(cur);cur='';i+=2;continue;}
+    cur+=def[i];i++;
+  }
+  out.push(cur);return out;
+}
+function matchFile(f, rule){
+  if(!rule) return null;
+  // 剥启用符 + 与标题；标题须后跟空白，避免把 name:"x" 这类精确匹配误当标题
+  const def=rule.replace(/^\+/,'').replace(/^"[^"]*"\s+/,'');
+  for(const tier of splitTiers(def)){
+    const sc=splitColor(tier);
+    const ci=sc.cond.indexOf('//');
+    const pure=(ci>=0? sc.cond.slice(0,ci) : sc.cond).trim();
+    if(!pure) continue;
+    if(matchCond(f,pure)){
+      const sm=pure.match(/\|([bswfrp-]+)$/);
+      return {fg:sc.fg,bg:sc.bg,style:sm?sm[1]:''};
+    }
+  }
+  return null;
+}
+function matchCond(f,cond){
+  // OR
+  const parts=splitTop(cond,';');
+  for(const p of parts){ if(matchOne(f,p.trim())) return true; }
+  return false;
+}
+function splitTop(s,sep){
+  const out=[];let cur='',q=false;
+  for(const ch of s){
+    if(ch==='"'){q=!q;cur+=ch;continue;}
+    if(ch===sep&&!q){out.push(cur);cur='';continue;}
+    cur+=ch;
+  }
+  out.push(cur);return out;
+}
+function matchOne(f,expr){
+  if(!expr) return false;
+  let neg=false;
+  let e=expr.trim();
+  if(/^!\s*/.test(e)){neg=true;e=e.replace(/^!\s*/,'');}
+  else if(/^NOT\s+/i.test(e)){neg=true;e=e.replace(/^NOT\s+/i,'');}
+  // AND
+  const ands=e.split(/\s+AND\s+|\s+&\s+/i);
+  let r=true;
+  for(const a of ands){ if(!matchAtom(f,a.trim())){r=false;break;} }
+  return neg? !r : r;
+}
+function matchAtom(f,atom){
+  let a=atom.trim();
+  // 控制选择器
+  a=a.replace(/^[TLB]:/i,'');
+  // 样式开关
+  a=a.replace(/\|[bswfrp-]+$/,'').trim();
+  // 作用域后缀 + 选择器
+  let m=a.match(/^([a-zA-Z]+)\s+([df]{1,2})\s*:\s*(.*)$/);
+  let sel,scope,rest;
+  if(m){sel=m[1];scope=m[2];rest=m[3].trim();}
+  else{
+    m=a.match(/^([a-zA-Z]+)\s*:\s*(.*)$/);
+    if(m && /^(name|dir|attr|attrlist|size|date|dateC|dateM|dateA|age|ageC|ageM|ageA|len|lenT|prop|tags|lbl|cmt|comment)$/i.test(m[1])){
+      sel=m[1];scope='';rest=m[2].trim();
+    } else { sel='name';scope='';rest=a; }  // 无选择器 = 名称
+  }
+  if(scope==='d' && !f.d) return false;
+  if(scope==='f' && f.d)  return false;
+  if(sel==='dir' && !f.d) return false;
+  if(sel==='prop') return false;   // 预览不模拟 shell 属性
+  if(sel==='name'||sel==='dir'){
+    return wild(rest,f.n);
+  }
+  if(sel==='attr'||sel==='attrlist'){
+    const list=rest.split(/[;\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean);
+    const has=x=>f.a.includes(x[0])||(x==='directory'&&f.d);
+    return sel==='attr' ? list.some(has) : list.every(has);
+  }
+  if(sel==='size'){
+    if(f.d) return false;
+    return numMatch(f.sz,rest,parseSize);
+  }
+  if(sel==='len'||sel==='lenT'){
+    const L = sel==='len' ? (f.len!=null? f.len : f.n.length) : f.n.length;
+    return numMatch(L,rest,x=>parseFloat(x));
+  }
+  if(sel.startsWith('age')){
+    // 转天
+    const u={'n':1/1440,'h':1/24,'d':1,'w':7,'m':30,'y':365};
+    return ageMatch(f.ageD,rest,u);
+  }
+  if(sel.startsWith('date')){
+    // 预览简化：按年份/月份比对
+    const dm=rest.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(dm){
+      const dt=new Date(2026,8,9); dt.setDate(dt.getDate()-Math.round(f.ageD));
+      const iso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+      const op=rest.slice(0,0);
+      return iso>=dm[0];
+    }
+    // 子范围 dw h m
+    const sm=rest.match(/^(y|q|m|dw|dy|d|h|n|s|ms)\s*(.*)$/);
+    if(sm){
+      const dt=new Date(2026,8,9); dt.setDate(dt.getDate()-Math.round(f.ageD));
+      const val={y:dt.getFullYear(),q:Math.floor(dt.getMonth()/3)+1,m:dt.getMonth()+1,dw:dt.getDay()===0?7:dt.getDay(),
+                 dy:Math.floor((dt-new Date(dt.getFullYear(),0,0))/864e5),d:dt.getDate(),h:dt.getHours(),n:dt.getMinutes(),s:dt.getSeconds(),ms:0}[sm[1]];
+      const v=sm[2].trim();
+      const rg=v.match(/^(\d+)\s*-\s*(\d+)$/);
+      if(rg) return +val>=+rg[1] && +val<=+rg[2];
+      return String(val)===v;
+    }
+    return false;
+  }
+  return wild(rest,f.n);
+}
+function wild(pat,name){
+  let p=pat.trim();
+  if(/^".*"$/.test(p)) p=p.slice(1,-1);
+  else if(!/[*?]/.test(p)) p='*'+p+'*';
+  const re='^'+p.replace(/[.+^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'.*').replace(/\?/g,'.')+'$';
+  try{return new RegExp(re,'i').test(name);}catch(e){return false;}
+}
+function numMatch(v,expr,parse){
+  const rg=expr.match(/^(.*?)\s*-\s*(.+)$/);
+  if(rg){
+    const a=rg[1].trim(),b=rg[2].trim();
+    const av=parse(a.replace(/^[<>=]+/,'').trim());
+    const bv=parse(b.replace(/^[<>=]+/,'').trim());
+    if(av===null||bv===null) return false;
+    return v>=av&&v<=bv;
+  }
+  const m=expr.match(/^(<=|>=|<|>|==)?\s*(.+)$/);
+  if(!m) return false;
+  const op=m[1]||'==';
+  const tv=parse(m[2].trim());
+  if(tv===null) return false;
+  return cmp(v,op,tv);
+}
+function ageMatch(days,expr,u){
+  const e=expr.trim();
+  // 裸单位（ageM: d / w / m / y）语义为「本X内」
+  const bare=e.match(/^([a-z]+)$/i);
+  if(bare){
+    const k=bare[1].toLowerCase();
+    if(k==='d') return Math.floor(days)===0;
+    if(k==='w') return days<=7;
+    if(k==='m') return days<=31;
+    if(k==='y') return days<=366;
+    if(k==='h') return days*24<=1;
+    if(k==='n') return days*1440<=1;
+    return false;
+  }
+  const rg=expr.match(/^(.*?)\s*-\s*(.+)$/);
+  if(rg){
+    const p1=rg[1].trim().match(/^(<=|>=|<|>|==)?\s*([\d.]+)\s*([a-z]+)$/i);
+    const p2=rg[2].trim().match(/^(<=|>=|<|>|==)?\s*([\d.]+)\s*([a-z]+)$/i);
+    if(p1&&p2){
+      const a=+p1[2]*(u[p1[3]]||1), b=+p2[2]*(u[p2[3]]||1);
+      return days>=a&&days<=b;
+    }
+  }
+  const m=expr.match(/^(<=|>=|<|>|==)?\s*([\d.]+)\s*([a-z]*)$/i);
+  if(!m) return false;
+  const unit=m[3]||'d';
+  const t=+m[2]*(u[unit]!==undefined?u[unit]:1);
+  const op=m[1]||'==';
+  if(unit==='d'&&!m[1]){ // ageM: 0 d / ageM: d 语义：整天
+    return Math.floor(days)===Math.floor(t);
+  }
+  return cmp(days,op,t);
+}
+
+/* ---------- 渲染 ---------- */
+function renderOut(){
+  const r=buildRule();
+  const el=$('#outRule');
+  if(!r){el.innerHTML='<span class="dim">（请填写匹配条件）</span>';}
+  else{
+    el.innerHTML=splitTiers(r).map(x=>{
+      const sc=splitColor(x);
+      if(!sc.has) return esc(x);
+      return esc(sc.cond)+'<span class="op">&gt;</span><span class="hl">'+esc(sc.fg+(sc.bg?','+sc.bg:''))+'</span>';
+    }).join('<span class="dim"> || </span>');
+  }
+  if(ST.auto) renderPreview(r);
+  return r;
+}
+function renderPreview(rule){
+  const box=$('#pvRows');
+  box.innerHTML='';
+  let hit=0;
+  SAMPLE.forEach(f=>{
+    const m = rule? matchFile(f,rule) : null;
+    const row=document.createElement('div');row.className='pvr';
+    const fg = m&&m.fg? '#'+m.fg : '';
+    const bg = m&&m.bg? '#'+m.bg : 'transparent';
+    if(m) hit++;
+    const st=m?m.style:'';
+    const radius = st.includes('r')? '5px' : (st? '2px':'4px');
+    const border = st.includes('b')? '2px solid '+bg : (st.includes('f')? '1px solid '+bg : '1px solid transparent');
+    row.innerHTML='<div class="c1"><span class="ico">'+ico(f)+'</span>'+
+      '<span class="nm" style="color:'+(fg||'inherit')+';background:'+bg+';border:'+border+';border-radius:'+radius+'">'+esc(f.n)+'</span></div>'+
+      '<div class="c2">'+fmtSize(f.sz)+'</div>'+
+      '<div class="c3">'+fmtAge(f.ageD)+'</div>';
+    box.appendChild(row);
+  });
+  $('#pvInfo').textContent = rule? ('命中 '+hit+' / '+SAMPLE.length+' 项') : '';
+}
+function renderTiers(){
+  const box=$('#tierList');
+  if(!ST.tiers.length){box.innerHTML='<div class="empty">暂无档位。单档规则直接在上方生成即可；多档点「+ 把当前条件加入档位」。</div>';return;}
+  box.innerHTML='';
+  ST.tiers.forEach((t,i)=>{
+    const d=document.createElement('div');d.className='tier';
+    d.innerHTML='<div class="th"><b>档位 '+(i+1)+'</b><span class="sp"></span>'+
+      '<span class="sw2" style="width:12px;height:12px;border-radius:3px;background:'+(t.bg?'#'+t.bg:'#fff')+';border:1px solid #ccc;display:inline-block"></span>'+
+      '<span class="del" data-i="'+i+'">×</span></div>'+
+      '<input type="text" class="mono" value="'+esc(t.cond)+'" data-k="cond" data-i="'+i+'">'+
+      '<div class="row" style="margin-top:6px"><input type="text" class="mono" value="'+esc(t.fg)+'" placeholder="文字色" data-k="fg" data-i="'+i+'">'+
+      '<input type="text" class="mono" value="'+esc(t.bg)+'" placeholder="背景色" data-k="bg" data-i="'+i+'"></div>';
+    box.appendChild(d);
+  });
+  box.querySelectorAll('input').forEach(inp=>{
+    inp.oninput=()=>{const i=+inp.dataset.i;ST.tiers[i][inp.dataset.k]=inp.value.trim();renderOut();};
+  });
+  box.querySelectorAll('.del').forEach(b=>{
+    b.onclick=()=>{ST.tiers.splice(+b.dataset.i,1);renderTiers();renderOut();};
+  });
+}
+function renderMy(){
+  const box=$('#myList');
+  $('#myCount').textContent=ST.my.length;
+  if(!ST.my.length){box.innerHTML='<div class="empty">还没有配方。生成后点「存入我的配方」，或用上方「复制全部规则」。</div>';updateMySel();return;}
+  box.innerHTML='';
+  ST.my.forEach((it,i)=>{
+    const sel=!!it._sel;
+    const d=document.createElement('div');d.className='myitem'+(sel?' sel':'');
+    d.innerHTML='<input type="checkbox" class="pick" data-pick="'+i+'" '+(sel?'checked':'')+'>'+
+      '<span class="sw2" style="background:'+(it.bg?'#'+it.bg:'#e8eaee')+';border-color:'+(it.fg?'#'+it.fg:'#ccc')+'"></span>'+
+      '<span class="mn" title="'+esc(it.def)+'">'+esc(it.name)+'</span>'+
+      '<span class="act"><button class="btn sm" data-a="load" data-i="'+i+'">载入</button>'+
+      '<button class="btn sm" data-a="del" data-i="'+i+'">删</button></span>';
+    box.appendChild(d);
+  });
+  box.querySelectorAll('input.pick').forEach(c=>{
+    c.onchange=()=>{
+      const i=+c.dataset.pick;
+      ST.my[i]._sel=c.checked;
+      box.children[i].classList.toggle('sel',c.checked);
+      updateMySel();
+    };
+  });
+  box.querySelectorAll('button').forEach(b=>{
+    b.onclick=()=>{
+      const i=+b.dataset.i;
+      if(b.dataset.a==='del'){ST.my.splice(i,1);save();renderMy();}
+      else { const it=ST.my[i]; loadDef(it.def); toast('已载入：'+it.name); }
+    };
+  });
+  updateMySel();
+}
+function updateMySel(){
+  const sel=ST.my.filter(x=>x._sel).length;
+  const cnt=$('#mySelCnt'); if(cnt) cnt.textContent='已选 '+sel+' 项';
+  const all=$('#mySelAll'); if(all) all.checked=(sel>0&&sel===ST.my.length);
+}
+function presetRule(p){
+  const cond=p[1],fg=p[2]||'',bg=p[3]||'';
+  return '+'+cond+(fg||bg?'>'+fg+(bg?','+bg:''):'');
+}
+function renderPresetLib(){
+  const box=$('#presetLib');box.innerHTML='';
+  // 按分类聚合
+  const groups={};
+  PRESETS.forEach(p=>{const c=p[4]||'其他';(groups[c]=groups[c]||[]).push(p);});
+  CAT_ORDER.forEach(cat=>{
+    const items=groups[cat];if(!items||!items.length) return;
+    const det=document.createElement('details');det.className='cat';det.open=true;
+    det.innerHTML='<summary><span>'+esc(cat)+'</span>'+
+      '<span class="cnt">'+items.length+'</span>'+
+      '<span class="arw">▾</span></summary>';
+    const body=document.createElement('div');body.className='body';
+    const lib=document.createElement('div');lib.className='lib';
+    items.forEach(p=>{
+      const [n,cond,fg,bg]=p;
+      const d=document.createElement('div');d.className='libitem';
+      d.innerHTML='<div class="lt"><span class="sw2" style="background:'+(bg?'#'+bg:'#fff')+';border-color:#'+(fg||'ccc')+'"></span>'+esc(n)+'</div>'+
+        '<div class="ld">'+esc(cond)+'</div>';
+      d.title=cond;
+      d.onclick=()=>{loadDef(presetRule(p));toast('已载入：'+n);};
+      lib.appendChild(d);
+    });
+    body.appendChild(lib);det.appendChild(body);box.appendChild(det);
+  });
+  // 多档渐变模板
+  const det=document.createElement('details');det.className='cat';det.open=true;
+  det.innerHTML='<summary><span>多档渐变模板</span>'+
+    '<span class="cnt">'+TIER_TEMPLATES.length+'</span>'+
+    '<span class="arw">▾</span></summary>';
+  const body=document.createElement('div');body.className='body';
+  const lib=document.createElement('div');lib.className='lib';
+  TIER_TEMPLATES.forEach(([n,def])=>{
+    const d=document.createElement('div');d.className='libitem';
+    d.innerHTML='<div class="lt">'+esc(n)+'</div><div class="ld">'+esc(def)+'</div>';
+    d.title=def;
+    d.onclick=()=>{loadDef('+'+def);toast('已载入模板：'+n);};
+    lib.appendChild(d);
+  });
+  body.appendChild(lib);det.appendChild(body);box.appendChild(det);
+}
+function loadDef(def){
+  // 解析一条规则回填（尽力而为）
+  let d=def.replace(/^\+/,'');
+  $('#cPlus').checked=def.startsWith('+');
+  const ti=d.match(/^"([^"]*)"\s*/);
+  if(ti){$('#iTitle').value=ti[1];d=d.slice(ti[0].length);} else $('#iTitle').value='';
+  const tg=d.match(/^([TLB]:)/i);
+  if(tg){$('#iTarget').value=tg[1].toUpperCase();d=d.slice(3);} else $('#iTarget').value='';
+  const tiers=splitTiers(d);
+  if(tiers.length>1){
+    ST.tiers=tiers.map(x=>{const sc=splitColor(x);return {cond:sc.cond.trim(),fg:sc.fg,bg:sc.bg};});
+    renderTiers();
+  }else{
+    ST.tiers=[];renderTiers();
+    const sc=splitColor(d);
+    setColor('#cFg',sc.fg);setColor('#cBg',sc.bg);
+    parseCondToForm(sc.cond.trim());
+  }
+  renderOut();
+}
+function parseCondToForm(c){
+  // 注释
+  $('#iComment').value='';
+  ST.mSwitch=false;ST.nSwitch=false;
+  let cond=c;
+  const ci=c.indexOf('//');
+  if(ci>=0){
+    cond=c.slice(0,ci);
+    let rest=c.slice(ci+2);
+    const segs=rest.split('|');
+    if(segs.length>1){
+      const sw=segs[0].trim().toLowerCase();   // 第 1 段是 m / n 开关
+      if(sw==='m') ST.mSwitch=true;
+      else if(sw==='n') ST.nSwitch=true;
+      if(sw==='m'||sw==='n'){ segs.shift(); rest=segs.join('|'); }
+    }
+    $('#iComment').value=rest.trim();
+  }
+  cond=cond.trim();
+  syncSwitchChips();
+  // 样式开关
+  ST.switches.clear();
+  const sm=cond.match(/\|([bswfrp-]+)$/);
+  if(sm){
+    (sm[1].match(/-?[bswfrp]/g)||[]).forEach(x=>ST.switches.add(x));
+    cond=cond.replace(/\|[bswfrp-]+$/,'').trim();
+  }
+  $$('.chip[data-sw]').forEach(ch=>ch.classList.toggle('on',ST.switches.has(ch.dataset.sw)));
+  // 选择器判断
+  const m=cond.match(/^([a-zA-Z]+)\s*([df]{1,2})?\s*:\s*(.*)$/);
+  if(m && /^(name|dir|attr|attrlist|size|date|dateC|dateM|dateA|age|ageC|ageM|ageA|len|lenT|prop|tags|lbl|cmt)$/i.test(m[1])){
+    const sel=m[1];
+    $('#iScope').value=(m[2]&&m[2].length===1)?m[2]:'';
+    const rest=m[3].trim();
+    if(sel==='name'||sel==='dir'){
+      $('#selType').value=sel;$('#iPattern').value=rest;$('#cExact').checked=/^".*"$/.test(rest);
+    } else if(sel.startsWith('age')){
+      $('#selType').value='age';$('#iAgeKind').value=(sel==='age'?'ageM':sel);
+      const am=rest.match(/^(<=|>=|<|>|==)?\s*([\d.]+)\s*([a-z]+)$/i);
+      if(am){$('#iAgeOp').value=am[1]||'';$('#iAgeNum').value=am[2];$('#iAgeUnit').value=am[3];}
+      else if(/^[a-z]+$/i.test(rest)){$('#iAgeOp').value='';$('#iAgeNum').value='0';$('#iAgeUnit').value=rest;} // ageM: d
+    } else if(sel.startsWith('date')){
+      $('#selType').value='date';$('#iDateKind').value=(sel==='date'?'dateM':sel);
+      const dm=rest.match(/^(y|q|m|dw|dy|d|h|n|s|ms)\s+(.*)$/);
+      if(dm){$('#iDateMode').value='sub';$('#iDateUnit').value=dm[1];$('#iDateSubVal').value=dm[2];}
+      else{
+        $('#iDateMode').value='abs';
+        const om=rest.match(/^(<=|>=|<|>|==)?\s*(.*)$/);
+        if(om){
+          $('#iDateOp').value=om[1]||'';
+          const rg=om[2].split(/\s+-\s+/);
+          $('#iDate1').value=rg[0]||'';$('#iDate2').value=rg[1]||'';
+        }
+      }
+      $('#rowDateAbs').style.display=$('#iDateMode').value==='abs'?'':'none';
+      $('#rowDateSub').style.display=$('#iDateMode').value==='sub'?'':'none';
+    } else if(sel==='size'){
+      $('#selType').value='size';
+      const sm2=rest.match(/^(<=|>=|<|>|==)?\s*([\d.]+)\s*([KMGTP]?B)?$/i);
+      if(sm2){$('#iSizeOp').value=sm2[1]||'';$('#iSizeNum').value=sm2[2];$('#iSizeUnit').value=(sm2[3]||'').toUpperCase();}
+    } else if(sel==='attr'){
+      $('#selType').value='attr';ST.attr=new Set(rest.split(/;\s*attr:\s*/).map(x=>x.trim()));
+      renderAttrChips();
+    } else if(sel==='attrlist'){
+      $('#selType').value='attrlist';
+      ST.attrList=new Set(rest.split('').map(ch=>ATTRS.find(a=>a[0]===ch)||ch));
+      renderAttrChips();
+    } else if(sel==='len'||sel==='lenT'){
+      $('#selType').value=sel;const lm=rest.match(/^(<=|>=|<|>|==)?\s*(\d+)$/);
+      if(lm){$('#iLenOp').value=lm[1]||'==';$('#iLenNum').value=lm[2];}
+    } else if(sel==='prop'){
+      $('#selType').value='prop';
+      const pm=rest.match(/^(#?[\w.]+):\s*(.*)$/);
+      if(pm){
+        const pn=pm[1];
+        if([...$('#iPropName').options].some(o=>o.value===pn)) $('#iPropName').value=pn;
+        else{$('#iPropName').value='custom';$('#iPropCustom').value=pn;$('#rowPropCustom').style.display='';}
+        $('#iPropVal').value=pm[2];
+      }
+    }
+  } else {
+    $('#selType').value='name';$('#iPattern').value=cond;$('#cExact').checked=/^".*"$/.test(cond);$('#iScope').value='';
+  }
+  syncTypePanels();
+}
+
+/* ---------- 颜色 ---------- */
+function setColor(sel,val){
+  const el=$(sel);
+  if(val && /^[0-9A-F]{6}$/i.test(val)){el.value='#'+val.toUpperCase();el.dataset.on='1';}
+  else{el.dataset.on='0';}
+  updateColorUI();
+}
+function updateColorUI(){
+  const f=$('#cFg'),b=$('#cBg');
+  const fv=f.dataset.on==='0'?'':f.value, bv=b.dataset.on==='0'?'':b.value;
+  $('#swFg').style.background = f.dataset.on==='0'? 'repeating-linear-gradient(45deg,#eee,#eee 4px,#fff 4px,#fff 8px)' : fv;
+  $('#swBg').style.background = b.dataset.on==='0'? 'repeating-linear-gradient(45deg,#eee,#eee 4px,#fff 4px,#fff 8px)' : bv;
+  $('#prevFgTxt').textContent = f.dataset.on==='0'? '（默认）' : fv.toUpperCase();
+  $('#prevBgTxt').textContent = b.dataset.on==='0'? '（默认）' : bv.toUpperCase();
+  $('#prevFgTxt').style.color = f.dataset.on==='0'? '#8A93A2' : fv;
+  $('#prevFgTxt').style.background = b.dataset.on==='0'? '#fff' : bv;
+  $('#prevBgTxt').style.color = f.dataset.on==='0'? '#8A93A2' : fv;
+  $('#prevBgTxt').style.background = b.dataset.on==='0'? '#fff' : bv;
+}
+
+/* ---------- 面板同步 ---------- */
+const PANELS={name:'#pName',dir:'#pName',age:'#pAge',date:'#pDate',size:'#pSize',attr:'#pAttr',attrlist:'#pAttrList',len:'#pLen',lenT:'#pLen',prop:'#pProp',tag:'#pTag'};
+function syncSwitchChips(){
+  $$('.chip[data-sw2]').forEach(ch=>{
+    ch.classList.toggle('on', ch.dataset.sw2==='m'? ST.mSwitch : ST.nSwitch);
+  });
+}
+function syncTypePanels(){
+  const t=$('#selType').value;
+  Object.values(PANELS).forEach(s=>$(s).style.display='none');
+  $(PANELS[t]).style.display='';
+  $('#tagType').textContent=$( '#selType').selectedOptions[0].text.split('（')[0].trim();
+}
+function renderExtChips(){
+  const box=$('#extChips');box.innerHTML='';
+  EXT_GROUPS.forEach(g=>{
+    const c=document.createElement('span');c.className='chip tiny';c.textContent=g.t;
+    c.onclick=()=>{
+      const cur=$('#iPattern').value.trim();
+      $('#iPattern').value = cur? (cur.replace(/;?$/,'')+';'+g.v) : g.v;
+      renderOut();
+    };
+    box.appendChild(c);
+  });
+}
+function renderAttrChips(){
+  const a=$('#attrChips'),l=$('#attrListChips');
+  a.innerHTML='';l.innerHTML='';
+  ATTRS.forEach(x=>{
+    const c1=document.createElement('span');c1.className='chip tiny'+(ST.attr.has(x)?' on':'');c1.textContent=x;
+    c1.onclick=()=>{ST.attr.has(x)?ST.attr.delete(x):ST.attr.add(x);renderAttrChips();renderOut();};
+    a.appendChild(c1);
+    const c2=document.createElement('span');c2.className='chip tiny'+(ST.attrList.has(x)?' on g':'');c2.textContent=x[0];
+    c2.title=x;
+    c2.onclick=()=>{ST.attrList.has(x)?ST.attrList.delete(x):ST.attrList.add(x);renderAttrChips();renderOut();};
+    l.appendChild(c2);
+  });
+}
+
+/* ---------- 存 / 取 ---------- */
+function save(){ try{localStorage.setItem('xy_cf_my',JSON.stringify(ST.my));}catch(e){} }
+function load(){ try{const s=localStorage.getItem('xy_cf_my');if(s)ST.my=JSON.parse(s)||[];}catch(e){} }
+
+/* ---------- 事件 ---------- */
+function bind(){
+  $('#selType').onchange=()=>{syncTypePanels();renderOut();};
+  ['#iPattern','#iAgeNum','#iAgeOp','#iAgeKind','#iAgeUnit','#iDateKind','#iDateMode','#iDateOp','#iDate1','#iDate2',
+   '#iDateUnit','#iDateSubVal','#iSizeOp','#iSizeNum','#iSizeUnit','#iSize2','#iLenOp','#iLenNum',
+   '#iPropName','#iPropCustom','#iPropVal','#iPropFilter','#iTagKind','#iTagVal','#iScope','#iTarget','#iTitle','#iComment','#cExact']
+   .forEach(s=>{const el=$(s);if(el){el.oninput=el.onchange=()=>renderOut();}});
+  $('#iDateMode').onchange=()=>{
+    const v=$('#iDateMode').value;
+    $('#rowDateAbs').style.display = v==='abs'?'':'none';
+    $('#rowDateSub').style.display = v==='sub'?'':'none';
+    renderOut();
+  };
+  $('#iPropName').onchange=()=>{
+    const o=$('#iPropName');
+    $('#rowPropCustom').style.display=o.value==='custom'?'':'none';
+    if(o.value!=='custom'){
+      const dv=o.selectedOptions[0].dataset.dv;
+      if(dv!==undefined) $('#iPropVal').value=dv;
+    }
+    renderOut();
+  };
+  $('#cFg').oninput=()=>{$('#cFg').dataset.on='1';updateColorUI();renderOut();};
+  $('#cBg').oninput=()=>{$('#cBg').dataset.on='1';updateColorUI();renderOut();};
+  $('#btnClrFg').onclick=()=>{$('#cFg').dataset.on='0';updateColorUI();renderOut();};
+  $('#btnClrBg').onclick=()=>{$('#cBg').dataset.on='0';updateColorUI();renderOut();};
+  $$('.chip[data-sw]').forEach(c=>{
+    c.onclick=()=>{const s=c.dataset.sw;ST.switches.has(s)?ST.switches.delete(s):ST.switches.add(s);c.classList.toggle('on');renderOut();};
+  });
+  $('#cPlus').onchange=renderOut;
+  $$('.chip[data-sw2]').forEach(c=>{
+    c.onclick=()=>{
+      const k=c.dataset.sw2;
+      if(k==='m'){ST.mSwitch=!ST.mSwitch; if(ST.mSwitch) ST.nSwitch=false;}
+      else{ST.nSwitch=!ST.nSwitch; if(ST.nSwitch) ST.mSwitch=false;}
+      syncSwitchChips();renderOut();
+    };
+  });
+
+  // 预设色
+  renderPresetColors();
+
+  // ---- Tauri / 连接 ----
+  $('#btnRefresh').onclick=()=>refreshStatus();
+  $('#btnLoadIni').onclick=()=>loadIniRules();
+  $('#btnWriteIni').onclick=()=>writeSection();
+  $('#btnWriteSection').onclick=()=>writeSection();
+  $('#btnBackupNow').onclick=async()=>{
+    try{const n=await TA.call('create_backup');toast('已备份：'+n);await refreshStatus();}
+    catch(e){toast('备份失败：'+e);}
+  };
+  $('#btnOpenBak').onclick=async()=>{
+    try{await TA.call('open_backup_folder');}catch(e){toast('打开失败：'+e);}
+  };
+  $('#btnSyncMy').onclick=()=>{
+    if(!INI_RULES.length) return toast('请先读取现有规则');
+    INI_RULES.forEach(r=>{
+      const sc=splitColor(r.def);
+      ST.my.push({name:(r.def.replace(/^\+/,'').replace(/\/\/.*/,'').trim().slice(0,26))||'规则',def:r.def,fg:sc.fg,bg:sc.bg});
+    });
+    save();renderMy();toast('已转入 '+INI_RULES.length+' 条');
+  };
+
+  // ---- 条件组合器 ----
+  $('#btnComboAdd').onclick=()=>{COMBO.push({cond:'',join:'AND',not:false});renderCombo();};
+  $('#btnComboClear').onclick=()=>{COMBO=[{cond:'',join:'AND',not:false}];COMBO_ACTIVE=null;$('#comboOut').value='';renderCombo();renderOut();};
+  $('#btnComboApply').onclick=()=>{
+    const s=buildComboStr();
+    if(!s) return toast('请至少填写一个条件');
+    COMBO_ACTIVE=s;$('#comboOut').value=s;renderOut();
+    toast('已合成，左侧输出区已更新');
+  };
+
+  // ---- 批量生成 ----
+  $('#btnBatchGen').onclick=()=>batchGen(true);
+  $('#btnBatchPreview').onclick=()=>batchGen(false);
+
+  // 档位
+  $('#btnAddTier').onclick=()=>{
+    const c=buildCond();
+    if(!c){toast('请先填写匹配条件');return;}
+    const cm=$('#iComment').value.trim();
+    ST.tiers.push({cond:cm? insertComment(c,cm):c, fg:hex($('#cFg').dataset.on==='0'?'':$('#cFg').value), bg:hex($('#cBg').dataset.on==='0'?'':$('#cBg').value)});
+    renderTiers();renderOut();toast('已加入档位 '+ST.tiers.length);
+  };
+  $('#btnClearTier').onclick=()=>{ST.tiers=[];renderTiers();renderOut();};
+
+  // 预览
+  $('#btnApply').onclick=()=>renderPreview(buildRule());
+  $('#btnAuto').onclick=()=>{ST.auto=!ST.auto;$('#btnAuto').textContent='自动预览：'+(ST.auto?'开':'关');if(ST.auto)renderPreview(buildRule());};
+
+  // 复制 / 保存
+  $('#btnCopyRule').onclick=()=>{const r=buildRule();if(!r)return toast('规则为空');copy(r,'规则已复制');};
+  $('#btnSaveMy').onclick=()=>{
+    const r=buildRule();if(!r)return toast('规则为空');
+    const name=$('#iTitle').value.trim()||$('#iComment').value.trim()||r.slice(0,26);
+    ST.my.push({name,def:r,fg:hex($('#cFg').value),bg:hex($('#cBg').value)});
+    save();renderMy();toast('已存入我的配方（'+ST.my.length+' 条）');
+  };
+  $('#btnGenIni').onclick=()=>{
+    if(!ST.my.length)return toast('我的配方为空');
+    let s='[ColorFilter]\r\nCount='+ST.my.length+'\r\n';
+    ST.my.forEach((it,i)=>{s+=(i+1)+'='+it.def+'\r\n';});
+    $('#outIni').textContent=s;toast('已生成 '+ST.my.length+' 条');
+  };
+  $('#btnCopyAll').onclick=()=>{
+    if(!ST.my.length)return toast('我的配方为空');
+    copy(ST.my.map(x=>x.def).join('\n'),'已复制 '+ST.my.length+' 条规则');
+  };
+  $('#btnExport').onclick=()=>{
+    if(!ST.my.length)return toast('我的配方为空');
+    const txt=ST.my.map(x=>x.def).join('\r\n');
+    dl(new Blob(['\ufeff'+txt],{type:'text/plain'}),'XYplorer-颜色过滤器配方.txt');
+  };
+  $('#btnImport').onclick=()=>{
+    const lines=$('#iImport').value.split(/\r?\n/).map(x=>x.trim()).filter(x=>x&&x!=='-');
+    if(!lines.length)return toast('请先粘贴规则文本');
+    lines.forEach(d=>{
+      const i=d.lastIndexOf('>');
+      const col=i>=0?d.slice(i+1):'';
+      const [fg,bg]=col.split(',');
+      ST.my.push({name:(d.replace(/^\+/,'').slice(0,28)),def:d,fg:(fg||'').trim(),bg:(bg||'').trim()});
+    });
+    save();renderMy();toast('已导入 '+lines.length+' 条');
+  };
+  $('#btnCopyIni').onclick=()=>{const t=$('#outIni').textContent;if(!t||t.startsWith('点击'))return toast('请先生成');copy(t,'ini 片段已复制');};
+  $('#btnSaveIni').onclick=()=>{
+    const t=$('#outIni').textContent;if(!t||t.startsWith('点击'))return toast('请先生成');
+    dl(new Blob(['\ufeff'+t],{type:'text/plain'}),'ColorFilter.ini');
+  };
+  $('#btnHelp').onclick=()=>{const c=$('#cardHelp');c.style.display=c.style.display==='none'?'':'none';};
+  $('#btnReset').onclick=()=>{
+    if(!confirm('确定清空「我的配方」？此操作不可撤销。'))return;
+    ST.my=[];save();renderMy();toast('已清空');
+  };
+
+  // ---- 我的配方：勾选 / 全选 / 导入现有规则 ----
+  $('#mySelAll').onchange=()=>{
+    const v=$('#mySelAll').checked;
+    ST.my.forEach(it=>it._sel=v);
+    renderMy();
+  };
+  $('#btnImportSel').onclick=()=>importSelectedToIni();
+}
+function copy(t,m){
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(()=>toast(m),()=>fb());}
+  else fb();
+  function fb(){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');toast(m);}catch(e){toast('复制失败，请手动选中');}ta.remove();}
+}
+function dl(blob,name){
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  toast('已保存 '+name);
+}
+
+/* =========================================================
+   Tauri 桥接 / XYplorer 连接 / 规则同步 / 条件组合 / 批量生成
+   ========================================================= */
+const TA=(()=>{
+  const ok=typeof window!=='undefined'&&!!window.__TAURI__;
+  return {ok,
+    async call(cmd,args){
+      if(!ok) throw new Error('浏览器模式不支持该操作（请用 exe 版本）');
+      return await window.__TAURI__.core.invoke(cmd,args||{});
+    }};
+})();
+
+let INI_STATE=null, INI_RULES=[], BAK_LIST=[];
+let COMBO=[{cond:'',join:'AND',not:false}], COMBO_ACTIVE=null;
+
+/* ---------- 连接状态 ---------- */
+async function refreshStatus(){
+  const badge=$('#envBadge');
+  if(!TA.ok){
+    badge.textContent='浏览器模式';badge.className='envbadge off';
+    $('#browserMode').style.display='';
+    $('#tauriMode').style.display='none';
+    $('#connTag').textContent='未连接';
+    return;
+  }
+  badge.textContent='已连接本地';badge.className='envbadge on';
+  $('#browserMode').style.display='none';
+  $('#tauriMode').style.display='';
+  try{
+    INI_STATE=await TA.call('get_ini_status');
+    const s=INI_STATE;
+    $('#stPath').textContent=s.path;
+    $('#stExist').textContent=s.exists? ('存在 · '+(s.size/1024).toFixed(0)+' KB') : '❌ 未找到';
+    $('#stMod').textContent=s.modified;
+    $('#stBak').textContent=s.backups+' 个';
+    $('#stRun').innerHTML=s.xy_running? '<span class="red">正在运行</span>' : '未运行';
+    $('#runWarn').style.display=s.xy_running?'':'none';
+    $('#connTag').textContent=s.exists?'已连接':'未找到配置';
+    if(!s.exists) $('#connTag').textContent='未找到配置';
+  }catch(e){
+    $('#stPath').textContent='读取失败：'+e;
+    $('#connTag').textContent='异常';
+  }
+  await loadBackups();
+}
+
+/* ---------- 读取 / 渲染 ini 规则 ---------- */
+async function loadIniRules(){
+  try{
+    const sec=await TA.call('extract_section',{sectionName:'[ColorFilter]'});
+    const arr=[];
+    sec.split(/\r?\n/).forEach(ln=>{
+      const m=ln.match(/^\s*(\d+)\s*=(.*)$/);
+      if(m) arr.push({def:m[2].trim(),on:m[2].trim().startsWith('+')});
+    });
+    INI_RULES=arr;
+    renderIniRules();
+    toast('已读取 '+arr.length+' 条规则');
+  }catch(e){ toast('读取失败：'+e); }
+}
+function renderIniRules(){
+  const box=$('#iniList');
+  $('#iniCount').textContent=INI_RULES.length;
+  if(!INI_RULES.length){box.innerHTML='<div class="empty">尚未读取。点上方「读取现有规则」。</div>';return;}
+  box.innerHTML='';
+  INI_RULES.forEach((r,i)=>{
+    const sc=splitColor(r.def);
+    const d=document.createElement('div');
+    d.className='myitem editable';
+    d.innerHTML='<input type="checkbox" '+(r.on?'checked':'')+' data-k="on" data-i="'+i+'" style="width:auto;flex:none">'+
+      '<span class="sw2" style="background:'+(sc.bg?'#'+sc.bg:'#e8eaee')+';border-color:'+(sc.fg?'#'+sc.fg:'#ccc')+'"></span>'+
+      '<span class="mn" style="cursor:pointer" title="点击载入到左侧编辑器"><span class="ruletext">'+esc(r.def)+'</span></span>'+
+      '<span class="act"><button class="btn sm" data-a="up" data-i="'+i+'">↑</button>'+
+      '<button class="btn sm" data-a="dn" data-i="'+i+'">↓</button>'+
+      '<button class="btn sm" data-a="del" data-i="'+i+'">删</button></span>';
+    d.querySelector('.mn').onclick=()=>{loadDef(r.def);toast('已载入第 '+(i+1)+' 条到左侧编辑器');};
+    d.querySelector('input[data-k=on]').onchange=(e)=>{
+      const v=e.target.checked;
+      INI_RULES[i].on=v;
+      INI_RULES[i].def = v ? (r.def.startsWith('+')?r.def:'+'+r.def) : r.def.replace(/^\+/,'');
+      renderIniRules();
+    };
+    d.querySelectorAll('button').forEach(b=>{
+      b.onclick=(ev)=>{
+        ev.stopPropagation();
+        const a=b.dataset.a;
+        if(a==='del'){INI_RULES.splice(i,1);}
+        else if(a==='up'&&i>0){const t=INI_RULES[i];INI_RULES[i]=INI_RULES[i-1];INI_RULES[i-1]=t;}
+        else if(a==='dn'&&i<INI_RULES.length-1){const t=INI_RULES[i];INI_RULES[i]=INI_RULES[i+1];INI_RULES[i+1]=t;}
+        renderIniRules();
+      };
+    });
+    box.appendChild(d);
+  });
+}
+function buildSection(){
+  let s='[ColorFilter]\r\nCount='+INI_RULES.length+'\r\n';
+  INI_RULES.forEach((r,i)=>{
+    const def=r.on? (r.def.startsWith('+')?r.def:'+'+r.def) : r.def.replace(/^\+/,'');
+    s+=(i+1)+'='+def+'\r\n';
+  });
+  return s;
+}
+async function writeSection(){
+  if(!INI_RULES.length) return toast('还没有规则可写');
+  if(INI_STATE&&INI_STATE.xy_running){
+    if(!confirm('XYplorer 正在运行，它退出时会覆盖配置，导致本次写入丢失。\n\n仍要继续吗？（建议先关闭 XYplorer）')) return;
+  }
+  try{
+    const bak=await TA.call('replace_colorfilter_section',{section:buildSection()});
+    toast('已写入 '+INI_RULES.length+' 条，备份：'+bak);
+    await refreshStatus();
+  }catch(e){ toast('写入失败：'+e); }
+}
+
+/* ---------- 我的配方 → 现有规则并写入 XYplorer ---------- */
+async function importSelectedToIni(){
+  if(!TA.ok) return toast('浏览器模式不支持写入，请用 exe 版本');
+  const picks=ST.my.filter(x=>x._sel);
+  if(!picks.length) return toast('请先在「我的配方」勾选要导入的条目');
+  // 若尚未读取现有规则，先自动读取（合并到已有规则上）
+  if(!INI_RULES.length){
+    await loadIniRules();
+  }
+  const norm=(d)=>d.replace(/^\+/,'').trim().toLowerCase();
+  const exist=new Set(INI_RULES.map(r=>norm(r.def)));
+  let added=0;
+  picks.forEach(it=>{
+    const key=norm(it.def);
+    if(exist.has(key)) return;       // 已存在则跳过（去重）
+    exist.add(key);
+    INI_RULES.push({def:it.def,on:true});  // 导入即启用
+    added++;
+  });
+  renderIniRules();
+  if(added===0){ toast('所选 '+picks.length+' 条均已存在于现有规则中，未新增'); return; }
+  toast('已合并 '+added+' 条到「现有规则」，准备写入 XYplorer…');
+  await writeSection();
+  // 写入成功后清除勾选态
+  ST.my.forEach(x=>{x._sel=false;});
+  save();renderMy();
+}
+
+/* ---------- 备份 ---------- */
+async function loadBackups(){
+  if(!TA.ok) return;
+  try{
+    BAK_LIST=await TA.call('list_backups');
+  }catch(e){ BAK_LIST=[]; }
+  const box=$('#bakList');
+  $('#bakCount').textContent=BAK_LIST.length;
+  if(!BAK_LIST.length){box.innerHTML='<div class="empty">暂无备份</div>';return;}
+  box.innerHTML='';
+  BAK_LIST.slice(0,12).forEach((b,i)=>{
+    const d=document.createElement('div');d.className='myitem';
+    d.innerHTML='<span class="mn">'+esc(b.modified)+'<br><span class="ruletext">'+esc(b.name)+'</span></span>'+
+      '<span class="act"><button class="btn sm" data-a="restore">恢复</button>'+
+      '<button class="btn sm" data-a="del">删</button></span>';
+    d.querySelectorAll('button').forEach(btn=>{
+      btn.onclick=async()=>{
+        if(btn.dataset.a==='restore'){
+          if(!confirm('恢复到该备份？\n当前配置会先被自动备份。')) return;
+          try{ const pre=await TA.call('restore_backup',{name:b.name}); toast('已恢复（当前已备份为 '+pre+'）'); await refreshStatus(); }
+          catch(e){ toast('恢复失败：'+e); }
+        }else{
+          if(!confirm('删除该备份？')) return;
+          try{ await TA.call('delete_backup',{name:b.name}); await refreshStatus(); toast('已删除'); }
+          catch(e){ toast('删除失败：'+e); }
+        }
+      };
+    });
+    box.appendChild(d);
+  });
+}
+
+/* ---------- 条件组合器 ---------- */
+function renderCombo(){
+  const box=$('#comboList');
+  if(!COMBO.length){box.innerHTML='<div class="empty">暂无条件，点「+ 添加条件」</div>';return;}
+  box.innerHTML='';
+  COMBO.forEach((c,i)=>{
+    const d=document.createElement('div');d.className='comborow';
+    d.innerHTML='<span class="idx">'+(i===0?'':(c.join==='AND'?'且':'或'))+'</span>'+
+      '<input type="text" class="mono" data-k="cond" data-i="'+i+'" value="'+esc(c.cond)+'" placeholder="原子条件，如 *.docx 或 size: >= 1 MB">'+
+      (i===0?'':'<select data-k="join" data-i="'+i+'"><option value="AND"'+(c.join==='AND'?' selected':'')+'>AND</option><option value="OR"'+(c.join==='OR'?' selected':'')+'>OR(分号)</option></select>')+
+      '<button class="mini-btn not'+(c.not?' on':'')+'" data-k="not" data-i="'+i+'" title="取反">!</button>'+
+      '<button class="mini-btn" data-k="del" data-i="'+i+'">×</button>';
+    box.appendChild(d);
+  });
+  box.querySelectorAll('input[data-k=cond]').forEach(inp=>{
+    inp.oninput=()=>{COMBO[+inp.dataset.i].cond=inp.value;};
+  });
+  box.querySelectorAll('select[data-k=join]').forEach(sel=>{
+    sel.onchange=()=>{COMBO[+sel.dataset.i].join=sel.value;renderCombo();};
+  });
+  box.querySelectorAll('button[data-k=not]').forEach(b=>{
+    b.onclick=()=>{const i=+b.dataset.i;COMBO[i].not=!COMBO[i].not;renderCombo();};
+  });
+  box.querySelectorAll('button[data-k=del]').forEach(b=>{
+    b.onclick=()=>{COMBO.splice(+b.dataset.i,1);if(!COMBO.length)COMBO=[{cond:'',join:'AND',not:false}];COMBO_ACTIVE=null;renderCombo();renderOut();};
+  });
+}
+function buildComboStr(){
+  const parts=COMBO.filter(c=>c.cond.trim());
+  if(!parts.length) return '';
+  let s='';
+  parts.forEach((c,i)=>{
+    const t=(c.not?'!':'')+c.cond.trim();
+    if(i===0) s=t;
+    else s += (c.join==='AND'? ' AND ' : '; ') + t;
+  });
+  return s;
+}
+
+/* ---------- 配色方案 / 批量生成 ---------- */
+function renderPaletteChips(){
+  const box=$('#paletteChips');box.innerHTML='';
+  Object.keys(PALETTES).forEach(k=>{
+    const c=document.createElement('span');
+    c.className='chip tiny'+(k===CUR_PAL?' on':'');c.textContent=k;
+    c.onclick=()=>{
+      CUR_PAL=k;PRESET_COLORS=PALETTES[k];
+      renderPaletteChips();renderPresetColors();toast('配色方案：'+k);
+    };
+    box.appendChild(c);
+  });
+}
+function renderPresetColors(){
+  const pc=$('#presetColors');pc.innerHTML='';
+  PRESET_COLORS.forEach(([fg,bg])=>{
+    const s=document.createElement('span');s.className='sw';
+    s.style.background='linear-gradient(135deg,'+fg+' 0 50%,'+(bg||'#fff')+' 50% 100%)';
+    s.title=fg+' / '+(bg||'（默认）');
+    s.onclick=()=>{setColor('#cFg',fg);setColor('#cBg',bg);renderOut();};
+    pc.appendChild(s);
+  });
+}
+function batchGen(store){
+  const lines=$('#batchInput').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(!lines.length) return toast('请先填写');
+  const pal=PALETTES[CUR_PAL];
+  const out=[];
+  lines.forEach((ln,i)=>{
+    const p=ln.split('|');
+    const name=(p[0]||'').trim()||('组'+(i+1));
+    const pat=(p[1]||p[0]||'').trim();
+    if(!pat) return;
+    const [fg,bg]=pal[i%pal.length];
+    const def='+'+pat+' //'+name+'>'+hex(fg)+(bg?','+hex(bg):'');
+    out.push({name,def,fg:hex(fg),bg:hex(bg)});
+  });
+  if(!out.length) return toast('没有有效行');
+  if(store){ out.forEach(o=>ST.my.push(o)); save(); renderMy(); toast('已存入 '+out.length+' 条'); }
+  const box=$('#batchPreview');box.innerHTML='';
+  out.forEach(o=>{
+    const d=document.createElement('div');d.className='batchsw';
+    d.innerHTML='<span class="sw2" style="background:'+(o.bg?'#'+o.bg:'#fff')+';border-color:#'+(o.fg||'ccc')+'"></span>'+
+      '<span class="bn">'+esc(o.name)+'</span><span class="bd">'+esc(o.def)+'</span>';
+    box.appendChild(d);
+  });
+}
+
+/* ---------- 启动 ---------- */
+(function init(){
+  renderExtChips();renderAttrChips();renderPresetLib();
+  bind();load();renderMy();syncTypePanels();
+  renderPaletteChips();renderCombo();
+  setColor('#cFg','003066');setColor('#cBg','CADCFF');
+  renderTiers();renderOut();
+  refreshStatus();
+})();
+</script>
+<footer class="appfoot">
+  XYplorer 颜色过滤器配方生成器 · 开发者 <b>Marcrevo</b> · 基于 XYplorer 官方 Color Filter 语法
+</footer>
+</body>
+</html>
