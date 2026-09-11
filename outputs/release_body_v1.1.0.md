@@ -1,3 +1,8 @@
+<!--
+  本文件是 v1.1.0 的发布说明（中英双语），由 outputs/publish_v1.1.0.py 在创建 Release 时
+  作为 body 原样上传。内容含：变更摘要、下载与 SHA256 校验命令、使用说明、许可证声明。
+  注意：保持正文为纯发布文案，本注释不会在 GitHub 渲染时显示。
+-->
 ## 更新内容 · What's new (v1.1.0)
 
 - 🌐 **新增中 / EN 双语界面**：右上角 `中 / EN` 一键切换，选择记忆在本地 · Added a **中文 / English** toggle (top-right); choice is saved locally.

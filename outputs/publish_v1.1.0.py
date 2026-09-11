@@ -1,3 +1,15 @@
+# ============================================================================
+# 一键发布脚本（v1.1.0）：python outputs/publish_v1.1.0.py
+#
+# 作用：把本地构建好的产物发布到 GitHub Release，全程不依赖 gh CLI。
+#   1) 通过 `git credential fill` 向 GitHub Credential Manager 索取已缓存的
+#      PAT（细粒度 token），仅在内存中使用，**不落盘**、不在脚本里硬编码。
+#   2) 用 GitHub REST API 创建 Release（正文取自 outputs/release_body_v1.1.0.md）。
+#   3) 上传资产。注意资产名必须用 **纯 ASCII**（如 XYplorer-ColorFilter-Tool-v1.1.0.exe）：
+#      GitHub 对含中文等非 ASCII 的文件名支持不稳定，中文名会被静默剥离/乱码，
+#      所以用 ASCII 文件名 + release 正文里写中文说明。
+# 仓库：Marcrevo-bit/xy-colorfilter-tool，标签：v1.1.0
+# ============================================================================
 import urllib.request, json, os, sys
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
