@@ -1,4 +1,24 @@
 <!DOCTYPE html>
+<!-- ============================================================================
+  XYplorer 颜色过滤器配方生成器 —— 前端（单文件，无任何框架）
+  ----------------------------------------------------------------------------
+  本文件即全部前端，由 Tauri 用 WebView2 加载，也可直接用浏览器双击打开（浏览器模式）。
+  内联了全部 CSS 与 JS，无外部依赖、无构建步骤。
+
+  功能构成：
+    1) 配方库 PRESETS（98 条）：按 6 大类分组折叠，点击即载入左侧编辑器。
+    2) 多档渐变模板 TIER_TEMPLATES（7 套）：点击即装配成 || 多档渐变。
+    3) 实时预览：用内置 SAMPLE 样本模拟 XYplorer 列表，按当前规则染色，所见即所得。
+    4) 规则生成：把“匹配条件 + 着色样式 + 渐变档位 + 组合/批量”拼成 XYplorer 语法
+       （B:树+列表 / T:仅树 / L:仅列表；prop: 取 shell 属性；|| 多档渐变）。
+    5) 与 XYplorer 连接（仅 exe 版）：读取/写入 XYplorer.ini 的 [ColorFilter] 段，
+       写入自动备份、可回滚；“我的配方”可合并进现有规则并写入。
+    6) 中英双语 i18n：右上角 中/EN 一键切换，选择记忆在 localStorage。
+    7) 语法速查：内置官方 Color Filter 语法要点弹层。
+    8) 导出：复制规则 / 生成 [ColorFilter] ini 片段 / 导出 .txt（带 BOM）。
+
+  页面分三栏：左=构建器，中=预览+生成结果+语法速查，右=连接/现有规则/我的配方/备份/库/模板/导出；底部为 Marcrevo 署名页脚。
+============================================================================= -->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -264,8 +284,10 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
 <div class="wrap">
 
   <!-- ================= 左：构建器 ================= -->
+  <!-- 左栏：从“匹配条件”一路拼到“着色/渐变/组合/批量”，实时驱动中栏预览与输出。 -->
   <div class="col-build">
 
+    <!-- ① 匹配条件：选择过滤器类型（name/dir/age/date/size/attr/len/prop/tag…）并填写对应条件 -->
     <div class="card">
       <h2>① 匹配条件 <span class="tag" id="tagType">名称</span></h2>
       <div class="body">
@@ -556,6 +578,7 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
       </div>
     </div>
 
+    <!-- ② 着色与样式：前景/背景色（可清空）、调色板与预设色、是否作用于树/列表、标题与注释 -->
     <div class="card">
       <h2><span data-i18n="c2style">② 着色与样式</span></h2>
       <div class="body">
@@ -612,6 +635,7 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
       </div>
     </div>
 
+    <!-- ③ 多档渐变：把“一条条件+一组配色”作为一档，多档用 || 串成渐变（按命中档位染色） -->
     <div class="card">
       <h2>③ 多档渐变 <span class="tag">||</span></h2>
       <div class="body">
@@ -624,6 +648,7 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
       </div>
     </div>
 
+    <!-- ④ 条件组合器：用 AND(分号) / OR(;) / NOT(!) 把多个原子条件拼成复杂规则 -->
     <div class="card">
       <h2>④ 条件组合器 <span class="tag">AND / OR / NOT</span></h2>
       <div class="body">
@@ -646,6 +671,7 @@ textarea{resize:vertical;min-height:56px;font-family:var(--mono);font-size:11.5p
       </div>
     </div>
 
+    <!-- ⑤ 批量生成：每行“名称|通配符”，按当前配色方案批量产出一套 Color Filter 规则 -->
     <div class="card">
       <h2>⑤ 批量生成 <span class="tag">按扩展名建整套配色</span></h2>
       <div class="body">
@@ -678,7 +704,9 @@ PDF|*.pdf
   </div>
 
   <!-- ================= 中：预览 ================= -->
+  <!-- 中栏：常驻可见的实时预览 + 生成的规则文本 + 语法速查弹层。 -->
   <div class="col-pv">
+    <!-- 实时预览：用内置 SAMPLE 样本按当前规则染色，模拟 XYplorer 列表（所见即所得） -->
     <div class="card">
       <h2>实时预览 <span class="tag">模拟 XYplorer 列表</span></h2>
       <div class="body">
@@ -697,6 +725,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- 生成的规则：把拼装结果渲染成可复制的 XYplorer Color Filter 语法（带高亮） -->
     <div class="card">
       <h2>生成的规则</h2>
       <div class="body">
@@ -714,6 +743,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- 语法速查：右上角“语法速查”按钮展开的官方 Color Filter 语法要点弹层 -->
     <div class="card" id="cardHelp" style="display:none">
       <h2>语法速查（官方帮助要点）</h2>
       <div class="body exdetails">
@@ -733,8 +763,10 @@ PDF|*.pdf
   </div>
 
   <!-- ================= 右：库与导出 ================= -->
+  <!-- 右栏：连接 XYplorer / 现有规则 / 我的配方 / 回滚备份 / 内置库 / 模板 / 导出。 -->
   <div class="col-out">
 
+    <!-- ① 连接 XYplorer：检测 ini 状态/XYplorer 是否运行；浏览器模式给出手动粘贴提示 -->
     <div class="card">
       <h2>① 连接 XYplorer <span class="tag" id="connTag">未连接</span></h2>
       <div class="body">
@@ -768,6 +800,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- ② 现有规则：读取 XYplorer.ini 的 [ColorFilter] 段，可逐项开关/排序/删除，再写回 -->
     <div class="card">
       <h2>② 现有规则 <span class="tag" id="iniCount">0</span></h2>
       <div class="body">
@@ -782,6 +815,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- 我的配方：本地保存的自定义规则（localStorage），可勾选后合并进“现有规则”写入 XYplorer -->
     <div class="card">
       <h2>我的配方 <span class="tag" id="myCount">0</span></h2>
       <div class="body">
@@ -808,6 +842,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- 回滚备份：列出 CF_Backups 目录下的自动备份，可恢复/删除（恢复前会再备一次当前） -->
     <div class="card">
       <h2>回滚备份 <span class="tag" id="bakCount">0</span></h2>
       <div class="body">
@@ -815,6 +850,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- 内置配方库：98 条预设，按 6 大类折叠分组，点击即载入左侧编辑器（带展开/折叠全部） -->
     <div class="card">
       <h2><span data-i18n="libTitle">内置配方库</span> <span class="tag" data-i18n="libTag">分类 · 点击载入</span></h2>
       <div class="body">
@@ -826,6 +862,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- 多档渐变模板：7 套可复用的 || 多档渐变方案，点击即载入到 ③ 多档渐变 -->
     <div class="card">
       <h2><span data-i18n="tierTplTitle">多档渐变模板</span> <span class="tag" data-i18n="tierTplTag">点击载入</span></h2>
       <div class="body">
@@ -833,6 +870,7 @@ PDF|*.pdf
       </div>
     </div>
 
+    <!-- 导出结果：把“我的配方”拼成 [ColorFilter] ini 片段，可复制或保存；也支持导出 .txt -->
     <div class="card">
       <h2><span data-i18n="exportIni">导出结果（ini 片段）</span></h2>
       <div class="body">
@@ -854,8 +892,22 @@ PDF|*.pdf
 
 <script>
 /* =========================================================
-   XYplorer 颜色过滤器配方生成器
-   规则来源：XYplorer 28.30 官方帮助 idh_colorfilters.htm
+   XYplorer 颜色过滤器配方生成器 —— 前端全部逻辑（无框架 / 无外部库）
+   规则语法来源：XYplorer 28.30 官方帮助 idh_colorfilters.htm
+   ---------------------------------------------------------
+   本 <script> 整体结构：
+     [数据]   EXT_GROUPS / ATTRS / PALETTES / CAT_ORDER / PRESETS(98) /
+             TIER_TEMPLATES(7) / SAMPLE(预览样本) / ST(本地状态) / STR(i18n 字典)
+     [工具]   取色/尺寸/通配符/数值比较等纯函数
+     [构造]   buildCond / buildRule / 档位拆分 / 规则拼装与注释插入
+     [匹配]   matchFile / matchCond / matchAtom / wild / numMatch / ageMatch
+             —— 预览引擎，按样本文件判定是否命中当前规则
+     [渲染]   renderOut / renderPreview / renderTiers / renderMy /
+             renderPresetLib / renderTierTemplates —— 把状态刷到 DOM
+     [事件]   bind() 绑定所有按钮/输入；copy / dl 负责复制与下载
+     [桥接]   TA 封装 window.__TAURI__.core.invoke；连接状态 / 读写 ini /
+             备份 / 条件组合 / 批量生成
+     [启动]   init() 在末尾执行，完成首次渲染与状态刷新
    ========================================================= */
 
 /* ---------- 数据 ---------- */
@@ -1292,7 +1344,7 @@ function insertComment(c,comment){
   return head+segs.join('|');
 }
 
-/* ---------- 预览匹配 ---------- */
+/* ---------- 预览匹配：按样本文件判定是否命中当前规则（实时预览引擎） ---------- */
 /* 按 || 拆档：注释区内的 ||（如 //||filternot:）不拆 */
 function splitTiers(def){
   const out=[];let cur='',i=0,inC=false;
@@ -1941,6 +1993,11 @@ function dl(blob,name){
 
 /* =========================================================
    Tauri 桥接 / XYplorer 连接 / 规则同步 / 条件组合 / 批量生成
+   ---------------------------------------------------------
+   TA：对 window.__TAURI__.core.invoke 的薄封装；浏览器模式下 ok=false，
+       调用会抛“请用 exe 版本”，从而优雅降级为纯手动复制。
+   其余函数负责：刷新连接状态、读取/写回 XYplorer.ini 的 [ColorFilter] 段、
+   我的配方→现有规则合并写入、备份列表、条件组合合成、配色方案与批量生成。
    ========================================================= */
 const TA=(()=>{
   const ok=typeof window!=='undefined'&&!!window.__TAURI__;
@@ -2211,6 +2268,7 @@ function batchGen(store){
   refreshStatus();
 })();
 </script>
+<!-- 页脚：项目署名（开发者 Marcrevo 与 XYplorer 官方语法来源声明） -->
 <footer class="appfoot">
   XYplorer 颜色过滤器配方生成器 · 开发者 <b>Marcrevo</b> · 基于 XYplorer 官方 Color Filter 语法
 </footer>
