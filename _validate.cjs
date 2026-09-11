@@ -1,5 +1,18 @@
-// 离线校验：抽取 index.html 中的 <script> 在 DOM stub 下执行，
-// 验证 (1) 无语法/引用错误 (2) PRESETS 分类完整且不重复 (3) 预览匹配逻辑正确。
+// ============================================================================
+// 离线校验器（发布 / CI 前运行）：node _validate.cjs
+//
+// 做法：把 ui/index.html 中内联的 <script> 整段抽出来，放进一个“假的 DOM 环境”
+// （用 Proxy 造的 document / window / localStorage stub，足以让脚本顶层语句跑起来），
+// 再用 Node 的 vm 沙箱执行，从而在不启动浏览器的前提下验证前端逻辑没坏。
+//
+// 校验点（见下方 test 字符串里输出的日志）：
+//   - PRESETS 总数、CAT_ORDER 分类顺序、空分类 / 未知分类 / 重名 检测
+//   - 大小写敏感检查（如 'Hardlinks' 误写为 'HardLinks' 会被揪出）
+//   - 预览匹配引擎：用内置 SAMPLE 样本喂给 matchFile / matchCond 等函数，
+//     对比命中数量是否符合预期（size/office/hidden/backup 等），并附带调试日志
+//   - 关键渲染函数 renderPresetLib() 能正常执行不报错
+//   - 最终打印 ALL_CHECKS_DONE 作为“全部通过”的信号（CI 可据此判定）
+// ============================================================================
 const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
@@ -9,7 +22,9 @@ const m = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!m) { console.log('NO_SCRIPT_FOUND'); process.exit(1); }
 let body = m[1];
 
-// ---- 通用 DOM stub ----
+// ---- 通用 DOM stub：用 Proxy 让任何属性访问都返回一个安全的“假元素” ----
+// 这样 index.html 脚本里诸如 document.getElementById(...).classList.add(...) 之类的调用
+// 即便在 Node 里找不到真实 DOM，也不会抛错，从而让脚本顶层能完整执行。
 function makeEl() {
   const store = { _children: [] };
   const handler = {
@@ -56,6 +71,9 @@ const sandbox = {
 };
 sandbox.globalThis = sandbox;
 
+// ---- 在沙箱里要跑的“测试脚本” ----
+// 它调用被校验脚本里的全局符号（PRESETS / CAT_ORDER / SAMPLE / matchFile / renderPresetLib ...），
+// 把各项断言结果 log() 出来，出错则捕获并打印 TEST_ERROR，绝不静默失败。
 const test = `
 ;(function(){
   const out = [];
@@ -126,6 +144,7 @@ const test = `
 })();
 `;
 
+// ---- 真正执行：把 index.html 的脚本 + 上面的测试串起来，放进同一个 vm 沙箱运行 ----
 try {
   vm.createContext(sandbox);
   vm.runInContext(body + '\n' + test, sandbox, { filename: 'index_script.js' });

@@ -1,3 +1,15 @@
+# ============================================================================
+# 离线发布校验器（构建出 exe 后运行）：python _verify.py
+#
+# 作用：防止“前端改了代码却没真正打进包”的低级事故。
+#   1) 读取 cargo build --release 产物 xy-colorfilter-tool.exe，计算并写出 SHA256
+#      （写入 xy-colorfilter-tool.exe.SHA256.txt，供发布页和校验命令使用）。
+#   2) 在 Tauri 的 codegen 资源里找到 Brotli 压缩后的 HTML（tauri-codegen-assets/*.html），
+#      解压后检查若干“关键字符串”是否真的被嵌入了产物——例如署名 "Marcrevo"、
+#      各分类名（"内置配方库"/"时间热度"/"属性状态"/"超长文件名"/"符号链接目录"）、
+#      模板占位 "presetLib"、样本名 "季度销售报表"、长名条件 "lenT: >= 64" 等。
+#      如果这些字符串缺失，说明前端代码没打进 exe，需要重新构建。
+# ============================================================================
 import hashlib, glob, os, sys
 
 base = os.path.dirname(os.path.abspath(__file__))
