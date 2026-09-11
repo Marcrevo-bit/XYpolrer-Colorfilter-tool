@@ -1,5 +1,14 @@
-// XYplorer 颜色过滤器配方生成器 —— Tauri 后端
-// 职责：定位/读取/写入 XYplorer.ini，自动备份与回滚，检测 XYplorer 运行状态
+// ============================================================================
+// XYplorer 颜色过滤器配方生成器 —— Tauri 2 后端（Rust / MSVC）
+//
+// 职责概述：作为前端 WebView2 与本地 XYplorer 之间的“桥”。
+//   - 定位 %APPDATA%\XYplorer\XYplorer.ini，读取 / 写入 color filter 段
+//   - 写入前自动备份到 XYplorer\CF_Backups\，支持列表 / 恢复 / 删除 / 清理（保留最近 20 个）
+//   - 检测 XYplorer.exe 是否正在运行（运行中写入会被其退出时覆盖，需提醒用户）
+//   - 正确处理 XYplorer.ini 的编码：中文 Windows 多为 GBK(ANSI)，用 encoding_rs 探测并按原编码读写，避免中文乱码 / “invalid UTF-8” 报错
+//   - 通过 tauri::command 暴露上述能力，前端用 window.__TAURI__.core.invoke 调用
+//   时间戳统一按东八区(UTC+8)算，且不引入 chrono，用手写的 civil_from_days 日期换算。
+// ============================================================================
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -407,6 +416,7 @@ fn splice_section(raw: &str, header: &str, body: &str) -> String {
 
 /* ---------------- 入口 ---------------- */
 
+// 应用入口：注册全部 Tauri 命令，加载前端（ui/index.html 或 dev URL），启动事件循环。
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,3 +1,16 @@
+# ============================================================================
+# Rust 包元数据与依赖（Tauri 2 桌面应用后端）
+#
+# 关键点：
+#   package.name = xy-colorfilter-tool  —— 产物 exe 名（xy-colorfilter-tool.exe）
+#   version      = "1.1.0"             —— 与 tauri.conf.json 的 version 保持一致
+#   authors      = ["Marcrevo"]        —— 开发者署名
+#   edition 2021 / rust-version 1.77    —— 最低工具链要求
+#   tauri 2.x    —— 应用框架；tauri-build 负责编译期代码生成（权限/capabilities 等）
+#   serde/serde_json —— 命令参数与返回值的（反）序列化
+#   encoding_rs  —— 处理 XYplorer.ini 的 GBK/UTF-8 编码，中文 Windows 上多为 ANSI/GBK
+# [profile.release] 开启 lto / opt-level=s / strip，把产物体积压到最小。
+# ============================================================================
 [package]
 name = "xy-colorfilter-tool"
 version = "1.1.0"
