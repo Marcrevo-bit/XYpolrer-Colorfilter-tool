@@ -1,9 +1,12 @@
-# Rust / Cargo 构建产物
+# 本仓库忽略规则：排除一切“可由源码重新生成”或“本地/私密”的文件，
+# 让 git 只跟踪真正的源文件，保持仓库精简、可复现。
+
+# Rust / Cargo 构建产物（src-tauri/target 下的编译中间文件与最终 exe 都通过 cargo 重建，无需入库）
 /target/
 **/target/
 *.d
 
-# 误建空文件（Windows nul 设备重定向产物）
+# 误建空文件（Windows nul 设备重定向产物，0 字节，必须排除）
 nul
 
 # 操作系统 / 编辑器垃圾
